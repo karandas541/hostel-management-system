@@ -1,0 +1,42 @@
+
+@'
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Test and coverage cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE and editor files
+.vscode/
+.idea/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Log files
+*.log
+'@ | Set-Content -Path .gitignore -Encoding utf8
+
+git add .gitignore
+git commit -m "Add Python gitignore rules"
+git push
