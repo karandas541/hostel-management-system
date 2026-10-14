@@ -70,7 +70,7 @@ class HostelWorkflowTests(unittest.TestCase):
             ],
         )
         connection.executemany(
-            "INSERT INTO students (student_id, name, email, phone, course, year, status) "
+            "INSERT INTO students (student_id, name, email, phone, course,year, status) "
             "VALUES (?, ?, ?, ?, ?, ?, 'Active')",
             [
                 ("STU001", "Student One", "s1@hostel.test", "9876543211", "Computer Science", 2),
@@ -139,6 +139,18 @@ class HostelWorkflowTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             student_service.add_student("BAD ID!", "Invalid", actor=self.admin)
 
+        # Student names are required and cannot be blank.
+        with self.assertRaises(ValueError):
+            student_service.add_student(
+                "STU005", "", actor=self.admin,
+            )
+
+        # The year field must contain an integer in the allowed range.
+        with self.assertRaises(ValueError):
+            student_service.add_student(
+                "STU006", "Invalid Year", year="abc", actor=self.admin,
+            )
+
     def test_room_capacity_allocation_and_student_scope(self):
         self.assertTrue(room_service.add_room("A-101", 1, 1, actor=self.admin, room_type="Single")[0])
         self.assertTrue(room_service.add_room("A-102", 1, 2, actor=self.admin)[0])
@@ -156,7 +168,7 @@ class HostelWorkflowTests(unittest.TestCase):
 
         self.assertTrue(room_service.deallocate_room("STU001", actor=self.admin)[0])
         self.assertEqual(room_service.get_room("A-101", actor=self.admin)[4], 0)
-        # Historical allocations remain for audit purposes, so safe delete still refuses.
+        # Historical allocations remain for audit purposes, so safe deletestill refuses.
         self.assertFalse(room_service.delete_room("A-101", actor=self.admin)[0])
 
     def test_fees_partial_full_payment_and_student_data_isolation(self):
@@ -228,7 +240,7 @@ class HostelWorkflowTests(unittest.TestCase):
         with self.assertRaises(AuthorizationError):
             notification_service.get_user_notifications(self.ids["student1"], actor=self.student2)
         self.assertEqual(notification_service.get_unread_count(self.ids["student1"], actor=self.student1), 1)
-        self.assertTrue(notification_service.mark_notification_as_read(n1, actor=self.student1)[0])
+        self.assertTrue(notification_service.mark_notification_as_read(n1,actor=self.student1)[0])
         self.assertEqual(notification_service.get_unread_count(self.ids["student1"], actor=self.student1), 0)
         with self.assertRaises(AuthorizationError):
             notification_service.delete_notification(n1, actor=self.student1)
@@ -297,7 +309,7 @@ class HostelWorkflowTests(unittest.TestCase):
         from views.settings import SettingsWindow
 
         parent = SimpleNamespace(user=dict(self.student1), theme_calls=0)
-        parent.apply_visual_theme = lambda: setattr(parent, "theme_calls", parent.theme_calls + 1)
+        parent.apply_visual_theme = lambda: setattr(parent, "theme_calls",parent.theme_calls + 1)
         profile = SimpleNamespace(
             user_data=dict(self.student1), student_db_id=self.student_db_ids["STU001"], parent=parent,
             email_entry=_Value("updated@hostel.test"), name_entry=_Value("Student One Updated"),
