@@ -40,3 +40,13 @@ dist/
 git add .gitignore
 git commit -m "Add Python gitignore rules"
 git push
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+.venv/
+
+# Local database
+database/hostel.db
