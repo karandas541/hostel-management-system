@@ -4,7 +4,6 @@ import time
 import tkinter as tk
 import tkinter.font as tkfont
 from datetime import datetime
-from tkinter import messagebox
 
 import customtkinter as ctk
 
@@ -611,8 +610,7 @@ class LoginWindow(ctk.CTk):
             text_color=COLORS["subtle"], font=ctk.CTkFont(size=11),
         )
         hint.grid(row=0, column=0, sticky="w")
-    
-        self._fade(hint, "text_color", COLORS["subtle"], 0.62)
+        
 
         # status line
         self.status_box = ctk.CTkFrame(
@@ -835,14 +833,19 @@ class LoginWindow(ctk.CTk):
         self._set_busy(False)
         self.login_button.configure(text="Sign in  →")
 
+    
     def _set_busy(self, busy):
         self._busy = busy
         state = "disabled" if busy else "normal"
-        for widget in (self.login_button, self.username_entry,
-                       self.password_entry, self.reveal_button,
-                       self.forgot_button):
-            widget.configure(state=state)
 
+        for widget in (
+            self.login_button,
+            self.username_entry,
+            self.password_entry,
+            self.reveal_button,
+        ):
+            widget.configure(state=state)
+    
     def _animate_login_button(self):
         if self._closing or not self._btn_anim:
             return
@@ -860,13 +863,7 @@ class LoginWindow(ctk.CTk):
         dashboard = DashboardWindow(user_result)
         dashboard.mainloop()
 
-    def show_password_help(self):
-        messagebox.showinfo(
-            "Account help",
-            "Password reset is not configured in this application yet. "
-            "Please contact your hostel administrator to reset your password.",
-            parent=self,
-        )
+   
 
     # ------------------------------------------------------------------
     # Animation
