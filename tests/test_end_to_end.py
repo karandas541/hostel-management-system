@@ -500,3 +500,11 @@ if __name__ == "__main__":
         self.assertEqual(stats2["total_fees_amount"], 2000)
         self.assertEqual(stats2["collected_fees"], 500)
         self.assertEqual(stats2["pending_fees"], 1500)
+
+    def test_dashboard_fee_analytics_with_no_fees(self):
+        stats = get_dashboard_statistics(actor=self.admin)
+
+        self.assertEqual(stats["total_fees_amount"], 0)
+        self.assertEqual(stats["collected_fees"], 0)
+        self.assertEqual(stats["pending_fees"], 0)
+        self.assertIsNone(stats["fee_payment_completion_rate"])
