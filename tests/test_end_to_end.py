@@ -521,3 +521,29 @@ if __name__ == "__main__":
         self.assertIsNone(student_stats["occupied_beds"])
         self.assertIsNone(student_stats["available_beds"])
         self.assertIsNone(student_stats["occupancy_rate"])
+
+    def test_dashboard_complaint_metrics_are_role_scoped(self):
+        self.assertTrue(
+            complaint_service.add_complaint(
+                "STU001", "Wi-Fi", "Internet is slow", "High",
+                actor=self.admin
+            )[0]
+        )
+        self.assertTrue(
+            complaint_service.add_complaint(
+                "STU002", "Cleaning", "Room needs cleaning", "Medium",
+                actor=self.admin
+            )[0]
+        )
+
+        admin_stats = get_dashboard_statistics(actor=self.admin)
+        student1_stats = get_dashboard_statistics(actor=self.student1)
+        student2_stats = get_dashboard_statistics(actor=self.student2)
+
+        self.assertEqual(admin_stats["total_complaints"], 2)
+        self.assertEqual(student1_stats["total_complaints"], 1)
+        self.assertEqual(student2_stats["total_complaints"], 1)
+
+        self.assertEqual(admin_stats["pending_complaints"], 2)
+        self.assertEqual(student1_stats["pending_complaints"], 1)
+        self.assertEqual(student2_stats["pending_complaints"], 1)
