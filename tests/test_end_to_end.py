@@ -578,3 +578,24 @@ if __name__ == "__main__":
         self.assertEqual(stats["pending_complaints"], 1)
         self.assertEqual(stats["resolved_complaints"], 1)
         self.assertEqual(stats["complaint_resolution_rate"], 50.0)
+
+    def test_dashboard_satisfaction_metrics_are_role_scoped(self):
+        self.assertTrue(
+            feedback_service.submit_feedback(
+                5, "Excellent hostel", actor=self.student1
+            )[0]
+        )
+        self.assertTrue(
+            feedback_service.submit_feedback(
+                3, "Needs improvement", actor=self.student2
+            )[0]
+        )
+
+        admin_stats = get_dashboard_statistics(actor=self.admin)
+        student1_stats = get_dashboard_statistics(actor=self.student1)
+        student2_stats = get_dashboard_statistics(actor=self.student2)
+
+        self.assertEqual(admin_stats["feedback_count"], 2)
+        self.assertEqual(admin_stats["average_satisfaction"], 4.0)
+        self.assertEqual(student1_stats["average_satisfaction"], 5.0)
+        self.assertEqual(student2_stats["average_satisfaction"], 3.0)
