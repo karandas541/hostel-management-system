@@ -464,3 +464,39 @@ if __name__ == "__main__":
         self.assertEqual(stats["collected_fees"], 900)
         self.assertEqual(stats["pending_fees"], 2100)
         self.assertEqual(stats["fee_payment_completion_rate"], 30.0)
+
+    def test_dashboard_fee_analytics_isolates_student_data(self):
+        self.assertTrue(
+            fee_service.add_fee("STU001", "1000.00", "2026-12-01", actor=self.admin)[0]
+        )
+        self.assertTrue(
+            fee_service.add_fee("STU002", "2000.00", "2026-12-10", actor=self.admin)[0]
+        )
+
+        fees1 = fee_service.get_all_fees(actor=self.student1)
+        fees2 = fee_service.get_all_fees(actor=self.student2)
+
+        self.assertEqual(len(fees1), 1)
+        self.assertEqual(len(fees2), 1)
+
+        self.assertTrue(
+            fee_service.make_payment(
+                fees1[0][0], 300, "UPI", "ISO-001", actor=self.admin
+            )[0]
+        )
+        self.assertTrue(
+            fee_service.make_payment(
+                fees2[0][0], 500, "Cash", "ISO-002", actor=self.admin
+            )[0]
+        )
+
+        stats1 = get_dashboard_statistics(actor=self.student1)
+        stats2 = get_dashboard_statistics(actor=self.student2)
+
+        self.assertEqual(stats1["total_fees_amount"], 1000)
+        self.assertEqual(stats1["collected_fees"], 300)
+        self.assertEqual(stats1["pending_fees"], 700)
+
+        self.assertEqual(stats2["total_fees_amount"], 2000)
+        self.assertEqual(stats2["collected_fees"], 500)
+        self.assertEqual(stats2["pending_fees"], 1500)
