@@ -599,3 +599,67 @@ if __name__ == "__main__":
         self.assertEqual(admin_stats["average_satisfaction"], 4.0)
         self.assertEqual(student1_stats["average_satisfaction"], 5.0)
         self.assertEqual(student2_stats["average_satisfaction"], 3.0)
+
+    def test_dashboard_recent_activity_is_isolated_by_student(self):
+        self.assertTrue(
+            complaint_service.add_complaint(
+                "STU001", "Wi-Fi", "Internet is slow", "High",
+                actor=self.admin
+            )[0]
+        )
+        self.assertTrue(
+            complaint_service.add_complaint(
+                "STU002", "Cleaning", "Room needs cleaning", "Medium",
+                actor=self.admin
+            )[0]
+        )
+
+        self.assertTrue(
+            fee_service.add_fee("STU001", "1000.00", "2026-12-01", actor=self.admin)[0]
+        )
+        self.assertTrue(
+            fee_service.add_fee("STU002", "2000.00", "2026-12-10", actor=self.admin)[0]
+        )
+
+        fees1 = fee_service.get_all_fees(actor=self.student1)
+        fees2 = fee_service.get_all_fees(actor=self.student2)
+
+        self.assertTrue(
+            fee_service.make_payment(
+                fees1[0][0], 100, "UPI", "RECENT-001", actor=self.admin
+            )[0]
+        )
+        self.assertTrue(
+            fee_service.make_payment(
+                fees2[0][0], 200, "Cash", "RECENT-002", actor=self.admin
+            )[0]
+        )
+
+        admin_stats = get_dashboard_statistics(actor=self.admin)
+        student1_stats = get_dashboard_statistics(actor=self.student1)
+        student2_stats = get_dashboard_statistics(actor=self.student2)
+
+        self.assertEqual(len(admin_stats["recent_complaints"]), 2)
+        self.assertEqual(len(student1_stats["recent_complaints"]), 1)
+        self.assertEqual(len(student2_stats["recent_complaints"]), 1)
+
+        self.assertTrue(
+            all(row[1] == "STU001" for row in student1_stats["recent_complaints"])
+        )
+        self.assertTrue(
+            all(row[1] == "STU002" for row in student2_stats["recent_complaints"])
+        )
+
+        self.assertEqual(len(admin_stats["recent_payments"]), 2)
+        self.assertEqual(len(student1_stats["recent_payments"]), 1)
+        self.assertEqual(len(student2_stats["recent_payments"]), 1)
+
+        self.assertTrue(
+            all(row[1] == "STU001" for row in student1_stats["recent_payments"])
+        )
+        self.assertTrue(
+            all(row[1] == "STU002" for row in student2_stats["recent_payments"])
+        )
+
+        self.assertEqual(student1_stats["recent_students"], [])
+        self.assertEqual(student2_stats["recent_students"], [])
