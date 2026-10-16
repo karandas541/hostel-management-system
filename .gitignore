@@ -50,3 +50,4 @@ __pycache__/
 
 # Local database
 database/hostel.db
+database/hostel_backup.db
