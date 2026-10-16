@@ -434,3 +434,33 @@ if __name__ == "__main__":
         self.assertEqual(stats["collected_fees"], 500)
         self.assertEqual(stats["pending_fees"], 500)
         self.assertEqual(stats["fee_payment_completion_rate"], 50.0)
+    def test_dashboard_fee_analytics_aggregates_multiple_fees(self):
+        self.assertTrue(
+            fee_service.add_fee("STU001", "1000.00", "2026-12-01", actor=self.admin)[0]
+        )
+        self.assertTrue(
+            fee_service.add_fee("STU002", "2000.00", "2026-12-10", actor=self.admin)[0]
+        )
+
+        fees = fee_service.get_all_fees(actor=self.admin)
+        fee_ids = {fee[0] for fee in fees}
+
+        self.assertEqual(len(fee_ids), 2)
+
+        for fee_id in fee_ids:
+            fee = fee_service.get_fee(fee_id, actor=self.admin)
+            student_id = "STU001" if fee[1] == "STU001" else "STU002"
+            payment = 400 if student_id == "STU001" else 500
+
+            self.assertTrue(
+                fee_service.make_payment(
+                    fee_id, payment, "UPI", f"AGG-{student_id}", actor=self.admin
+                )[0]
+            )
+
+        stats = get_dashboard_statistics(actor=self.admin)
+
+        self.assertEqual(stats["total_fees_amount"], 3000)
+        self.assertEqual(stats["collected_fees"], 900)
+        self.assertEqual(stats["pending_fees"], 2100)
+        self.assertEqual(stats["fee_payment_completion_rate"], 30.0)
