@@ -389,3 +389,48 @@ class HostelWorkflowTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+    def test_dashboard_fee_analytics_with_multiple_payments(self):
+        self.assertTrue(
+            fee_service.add_fee("STU001", "1000.00", "2026-12-01", actor=self.admin)[0]
+        )
+        fee = fee_service.get_all_fees(actor=self.admin)[0]
+        fee_id = fee[0]
+
+        self.assertTrue(
+            fee_service.make_payment(fee_id, 300, "UPI", "DASH-001", actor=self.admin)[0]
+        )
+        self.assertTrue(
+            fee_service.make_payment(fee_id, 200, "Cash", "DASH-002", actor=self.admin)[0]
+        )
+
+        stats = get_dashboard_statistics(actor=self.admin)
+
+        self.assertEqual(stats["total_fees_amount"], 1000)
+        self.assertEqual(stats["collected_fees"], 500)
+        self.assertEqual(stats["pending_fees"], 500)
+        self.assertEqual(stats["fee_payment_completion_rate"], 50.0)
+
+    def test_dashboard_fee_analytics_with_multiple_payments(self):
+        self.assertTrue(
+            fee_service.add_fee("STU001", "1000.00", "2026-12-01", actor=self.admin)[0]
+        )
+        fee = fee_service.get_all_fees(actor=self.admin)[0]
+        fee_id = fee[0]
+
+        self.assertTrue(
+            fee_service.make_payment(
+                fee_id, 300, "UPI", "DASH-001", actor=self.admin
+            )[0]
+        )
+        self.assertTrue(
+            fee_service.make_payment(
+                fee_id, 200, "Cash", "DASH-002", actor=self.admin
+            )[0]
+        )
+
+        stats = get_dashboard_statistics(actor=self.admin)
+
+        self.assertEqual(stats["total_fees_amount"], 1000)
+        self.assertEqual(stats["collected_fees"], 500)
+        self.assertEqual(stats["pending_fees"], 500)
+        self.assertEqual(stats["fee_payment_completion_rate"], 50.0)
