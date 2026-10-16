@@ -547,3 +547,34 @@ if __name__ == "__main__":
         self.assertEqual(admin_stats["pending_complaints"], 2)
         self.assertEqual(student1_stats["pending_complaints"], 1)
         self.assertEqual(student2_stats["pending_complaints"], 1)
+
+    def test_dashboard_complaint_resolution_metrics(self):
+        self.assertTrue(
+            complaint_service.add_complaint(
+                "STU001", "Wi-Fi", "Internet is slow", "High",
+                actor=self.admin
+            )[0]
+        )
+        self.assertTrue(
+            complaint_service.add_complaint(
+                "STU002", "Cleaning", "Room needs cleaning", "Medium",
+                actor=self.admin
+            )[0]
+        )
+
+        complaints = complaint_service.get_all_complaints(actor=self.admin)
+        self.assertEqual(len(complaints), 2)
+
+        complaint_id = complaints[0][0]
+        self.assertTrue(
+            complaint_service.update_complaint_status(
+                complaint_id, "Resolved", actor=self.admin
+            )[0]
+        )
+
+        stats = get_dashboard_statistics(actor=self.admin)
+
+        self.assertEqual(stats["total_complaints"], 2)
+        self.assertEqual(stats["pending_complaints"], 1)
+        self.assertEqual(stats["resolved_complaints"], 1)
+        self.assertEqual(stats["complaint_resolution_rate"], 50.0)
