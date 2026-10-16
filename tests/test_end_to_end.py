@@ -508,3 +508,16 @@ if __name__ == "__main__":
         self.assertEqual(stats["collected_fees"], 0)
         self.assertEqual(stats["pending_fees"], 0)
         self.assertIsNone(stats["fee_payment_completion_rate"])
+
+    def test_dashboard_student_count_is_role_scoped(self):
+        admin_stats = get_dashboard_statistics(actor=self.admin)
+        student_stats = get_dashboard_statistics(actor=self.student1)
+
+        self.assertEqual(admin_stats["total_students"], 2)
+        self.assertEqual(student_stats["total_students"], 1)
+
+        self.assertIsNone(student_stats["total_rooms"])
+        self.assertIsNone(student_stats["total_beds"])
+        self.assertIsNone(student_stats["occupied_beds"])
+        self.assertIsNone(student_stats["available_beds"])
+        self.assertIsNone(student_stats["occupancy_rate"])
