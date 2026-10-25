@@ -756,3 +756,43 @@ if __name__ == "__main__":
 
         student_stats = get_dashboard_statistics(actor=self.student1)
         self.assertEqual(student_stats["recent_students"], [])
+
+    def test_dashboard_complaint_status_breakdown_is_role_scoped(self):
+        self.assertTrue(
+            complaint_service.add_complaint(
+                "STU001", "Wi-Fi", "Internet is slow", "High",
+                actor=self.admin
+            )[0]
+        )
+        self.assertTrue(
+            complaint_service.add_complaint(
+                "STU001", "Cleaning", "Room needs cleaning", "Medium",
+                actor=self.admin
+            )[0]
+        )
+        self.assertTrue(
+            complaint_service.add_complaint(
+                "STU002", "Maintenance", "Broken chair", "Low",
+                actor=self.admin
+            )[0]
+        )
+
+        complaints = complaint_service.get_all_complaints(actor=self.admin)
+        complaint_id = complaints[0][0]
+
+        self.assertTrue(
+            complaint_service.update_complaint_status(
+                complaint_id, "Resolved", actor=self.admin
+            )[0]
+        )
+
+        admin_stats = get_dashboard_statistics(actor=self.admin)
+        student1_stats = get_dashboard_statistics(actor=self.student1)
+        student2_stats = get_dashboard_statistics(actor=self.student2)
+
+        self.assertEqual(sum(count for _, count in admin_stats["complaint_status_counts"]), 3)
+        self.assertEqual(sum(count for _, count in student1_stats["complaint_status_counts"]), 2)
+        self.assertEqual(sum(count for _, count in student2_stats["complaint_status_counts"]), 1)
+
+        admin_statuses = dict(admin_stats["complaint_status_counts"])
+        self.assertEqual(admin_statuses.get("Resolved", 0), 1)
