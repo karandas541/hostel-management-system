@@ -663,3 +663,24 @@ if __name__ == "__main__":
 
         self.assertEqual(student1_stats["recent_students"], [])
         self.assertEqual(student2_stats["recent_students"], [])
+
+    def test_dashboard_recent_activity_is_limited_to_five_latest_records(self):
+        for index in range(7):
+            self.assertTrue(
+                complaint_service.add_complaint(
+                    "STU001",
+                    "Wi-Fi",
+                    f"Test complaint {index}",
+                    "High",
+                    actor=self.admin,
+                )[0]
+            )
+
+        stats = get_dashboard_statistics(actor=self.admin)
+        recent = stats["recent_complaints"]
+
+        self.assertEqual(len(recent), 5)
+        self.assertEqual(
+            [row[0] for row in recent],
+            sorted([row[0] for row in recent], reverse=True),
+        )
