@@ -684,3 +684,30 @@ if __name__ == "__main__":
             [row[0] for row in recent],
             sorted([row[0] for row in recent], reverse=True),
         )
+
+    def test_dashboard_recent_payments_are_limited_and_ordered(self):
+        self.assertTrue(
+            fee_service.add_fee("STU001", "5000.00", "2026-12-01", actor=self.admin)[0]
+        )
+        fee = fee_service.get_all_fees(actor=self.admin)[0]
+        fee_id = fee[0]
+
+        for index in range(7):
+            self.assertTrue(
+                fee_service.make_payment(
+                    fee_id,
+                    100,
+                    "UPI",
+                    f"RECENT-PAY-{index}",
+                    actor=self.admin,
+                )[0]
+            )
+
+        stats = get_dashboard_statistics(actor=self.admin)
+        recent = stats["recent_payments"]
+
+        self.assertEqual(len(recent), 5)
+        self.assertEqual(
+            [row[0] for row in recent],
+            sorted([row[0] for row in recent], reverse=True),
+        )
