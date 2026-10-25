@@ -711,3 +711,48 @@ if __name__ == "__main__":
             [row[0] for row in recent],
             sorted([row[0] for row in recent], reverse=True),
         )
+
+    def test_dashboard_recent_students_are_admin_only_and_limited(self):
+        admin_stats = get_dashboard_statistics(actor=self.admin)
+        student_stats = get_dashboard_statistics(actor=self.student1)
+
+        self.assertEqual(len(admin_stats["recent_students"]), 2)
+        self.assertEqual(student_stats["recent_students"], [])
+        self.assertEqual(
+            {row[0] for row in admin_stats["recent_students"]},
+            {"STU001", "STU002"},
+        )
+
+        connection = database.get_connection()
+        try:
+            for index in range(7):
+                connection.execute(
+                    """
+                    INSERT INTO students
+                        (student_id, name, email, phone, course, year, status)
+                    VALUES (?, ?, ?, ?, ?, ?, 'Active')
+                    """,
+                    (
+                        f"NEW{index:03d}",
+                        f"New Student {index}",
+                        f"new{index}@hostel.test",
+                        f"987650{index:04d}",
+                        "Computer Science",
+                        1,
+                    ),
+                )
+            connection.commit()
+        finally:
+            connection.close()
+
+        admin_stats = get_dashboard_statistics(actor=self.admin)
+        recent = admin_stats["recent_students"]
+
+        self.assertEqual(len(recent), 5)
+        self.assertEqual(
+            [row[0] for row in recent],
+            [f"NEW{i:03d}" for i in range(6, 1, -1)],
+        )
+
+        student_stats = get_dashboard_statistics(actor=self.student1)
+        self.assertEqual(student_stats["recent_students"], [])
