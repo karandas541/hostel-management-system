@@ -9,7 +9,7 @@ from services.notification_service import notify_student_record
 from utils.validators import validate_iso_date, validate_positive_amount, validate_student_id
 
 
-PAYMENT_MODES = ("Cash", "UPI", "Bank Transfer")
+PAYMENT_MODES = ("Cash", "UPI", "Card", "Net Banking", "Bank Transfer")
 
 
 def _amount_in_cents(value, label="Amount"):
@@ -123,8 +123,10 @@ def make_payment(fee_id, amount, payment_mode, receipt_number=None, actor=None):
     except ValueError as error:
         return False, str(error)
     payment_mode = str(payment_mode or "").strip()
-    if payment_mode not in PAYMENT_MODES:
-        return False, "Choose Cash, UPI, or Bank Transfer as the payment mode."
+    valid_modes = {m.lower(): m for m in PAYMENT_MODES}
+    if payment_mode.lower() not in valid_modes:
+        return False, "Choose Cash, UPI, Card, Net Banking, or Bank Transfer as the payment mode."
+    payment_mode = valid_modes[payment_mode.lower()]
     receipt_number = str(receipt_number or "").strip() or None
 
     connection = get_connection()

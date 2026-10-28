@@ -15,26 +15,41 @@ def validate_rating(rating):
 
 def add_feedback(
     student_id,
-    room_quality,
-    cleanliness,
-    food_quality,
-    maintenance,
-    wifi,
-    security,
-    hostel_staff,
-    common_facilities,
-    overall_experience,
+    room_quality=5,
+    cleanliness=5,
+    food_quality=5,
+    maintenance=5,
+    wifi=5,
+    security=5,
+    hostel_staff=5,
+    common_facilities=5,
+    overall_experience=5,
     comments="",
     evaluation_period="Monthly",
-    actor=None
+    actor=None,
+    **kwargs
 ):
+    # Support alias keyword arguments passed by various UI dialogs
+    if "room_maintenance" in kwargs:
+        maintenance = kwargs["room_maintenance"]
+    if "washroom_hygiene" in kwargs:
+        cleanliness = kwargs["washroom_hygiene"]
+    if "internet_wifi" in kwargs:
+        wifi = kwargs["internet_wifi"]
+    if "staff_behavior" in kwargs:
+        hostel_staff = kwargs["staff_behavior"]
+    if "study_environment" in kwargs:
+        common_facilities = kwargs["study_environment"]
+    if "suggestions" in kwargs:
+        comments = kwargs["suggestions"] or comments
+
     try:
         student_id = validate_student_id(student_id)
     except ValueError as error:
         return False, str(error)
     student_db_id, _ = resolve_student_target(actor, student_id)
 
-    evaluation_period = str(evaluation_period or "").strip()
+    evaluation_period = str(evaluation_period or "Monthly").strip()
     comments = str(comments or "").strip()
     if evaluation_period not in EVALUATION_PERIODS:
         return False, "Choose Weekly, Monthly, Quarterly, or Yearly as the evaluation period."
@@ -45,15 +60,6 @@ def add_feedback(
     cursor = connection.cursor()
 
     try:
-
-        # =========================
-        # CHECK STUDENT
-        # =========================
-
-        # =========================
-        # VALIDATE RATINGS
-        # =========================
-
         ratings = [
             room_quality,
             cleanliness,
@@ -67,15 +73,12 @@ def add_feedback(
         ]
 
         for rating in ratings:
-
             if not validate_rating(rating):
-
                 return False, "All ratings must be between 1 and 5."
 
         # =========================
         # INSERT FEEDBACK
         # =========================
-
         cursor.execute(
             """
             INSERT INTO feedback
@@ -112,17 +115,13 @@ def add_feedback(
         )
 
         connection.commit()
-
         return True, "Feedback submitted successfully."
 
     except Exception:
-
         connection.rollback()
-
         return False, "Feedback could not be saved. Please check the entries and try again."
 
     finally:
-
         connection.close()
 
 
@@ -161,9 +160,7 @@ def get_all_feedback(actor=None):
         cursor.execute(query + " ORDER BY feedback.id DESC")
 
     feedback = cursor.fetchall()
-
     connection.close()
-
     return feedback
 
 
@@ -190,9 +187,7 @@ def get_average_satisfaction(actor=None):
     )
 
     result = cursor.fetchone()
-
     connection.close()
-
     return result
 
 
@@ -217,7 +212,6 @@ def get_overall_satisfaction(actor=None):
         )
 
     result = cursor.fetchone()
-
     connection.close()
 
     if result[0] is None:

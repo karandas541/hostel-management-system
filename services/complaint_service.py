@@ -34,23 +34,27 @@ def add_complaint(student_id, category, description, priority="Medium", actor=No
             """,
             (
                 student_db_id,
-        category,
+                category,
                 description,
                 priority
             )
         )
+        complaint_pk = cursor.lastrowid
+
+        # Dispatch notification to all active admins so the admin's notification badge alerts them
+        admin_users = cursor.execute(
+            """SELECT users.id FROM users
+               LEFT JOIN user_settings ON user_settings.user_id = users.id
+               WHERE users.role = 'admin' AND users.is_active = 1
+                 AND COALESCE(user_settings.notifications_enabled, 1) = 1"""
+        ).fetchall()
+        for (admin_id,) in admin_users:
+            cursor.execute(
+                "INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)",
+                (admin_id, f"New Complaint: {category}", f"Student submitted #{complaint_pk} ({priority} priority): {description[:100]}"),
+            )
 
         connection.commit()
-
-        try:
-            notify_student_record(
-                student_db_id,
-                "Complaint received",
-                f"Your {category.strip()} complaint was submitted successfully. We will keep you updated.",
-                actor=actor,
-            )
-        except Exception:
-            pass
 
         return True, "Complaint submitted successfully."
 

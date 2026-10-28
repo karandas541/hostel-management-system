@@ -122,13 +122,21 @@ def create_announcement(title, message, actor=None):
         user_ids = connection.execute(
             """SELECT users.id FROM users
                LEFT JOIN user_settings ON user_settings.user_id = users.id
-               WHERE users.is_active = 1 AND COALESCE(user_settings.notifications_enabled, 1) = 1"""
+               WHERE users.is_active = 1
+                 AND users.id != ?
+                 AND COALESCE(user_settings.notifications_enabled, 1) = 1""",
+            (verified["id"],),
         ).fetchall()
         for (user_id,) in user_ids:
             connection.execute(
-                "INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)",
+                "INSERT INTO notifications (user_id, title, message, is_read) VALUES (?, ?, ?, 0)",
                 (user_id, f"Announcement: {title}", message),
             )
+        # Also record for the admin sender as already seen (is_read = 1) so it shows in their history without triggering unread badge
+        connection.execute(
+            "INSERT INTO notifications (user_id, title, message, is_read) VALUES (?, ?, ?, 1)",
+            (verified["id"], f"Announcement: {title}", message),
+        )
         connection.commit()
         return True, f"Announcement saved and sent to {len(user_ids)} opted-in account(s)."
     except sqlite3.Error:
@@ -145,7 +153,7 @@ def get_user_notifications(user_id, actor=None):
     try:
         return connection.execute(
             """SELECT id, title, message, is_read, created_at
-               FROM notifications WHERE user_id = ?
+               FROM notifications WHERE user_id = ? AND lower(title) != 'complaint received'
                ORDER BY created_at DESC, id DESC""",
             (user_id,),
         ).fetchall()
@@ -161,7 +169,7 @@ def get_unread_count(user_id, actor=None):
         row = connection.execute(
             """SELECT COUNT(*) FROM notifications
                LEFT JOIN user_settings ON user_settings.user_id = notifications.user_id
-               WHERE notifications.user_id = ? AND notifications.is_read = 0
+               WHERE notifications.user_id = ? AND notifications.is_read = 0 AND lower(notifications.title) != 'complaint received'
                  AND COALESCE(user_settings.notifications_enabled, 1) = 1""",
             (user_id,),
         ).fetchone()
