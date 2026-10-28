@@ -387,8 +387,7 @@ class HostelWorkflowTests(unittest.TestCase):
                     path.unlink()
 
 
-if __name__ == "__main__":
-    unittest.main()
+
     def test_dashboard_fee_analytics_with_multiple_payments(self):
         self.assertTrue(
             fee_service.add_fee("STU001", "1000.00", "2026-12-01", actor=self.admin)[0]
@@ -410,30 +409,6 @@ if __name__ == "__main__":
         self.assertEqual(stats["pending_fees"], 500)
         self.assertEqual(stats["fee_payment_completion_rate"], 50.0)
 
-    def test_dashboard_fee_analytics_with_multiple_payments(self):
-        self.assertTrue(
-            fee_service.add_fee("STU001", "1000.00", "2026-12-01", actor=self.admin)[0]
-        )
-        fee = fee_service.get_all_fees(actor=self.admin)[0]
-        fee_id = fee[0]
-
-        self.assertTrue(
-            fee_service.make_payment(
-                fee_id, 300, "UPI", "DASH-001", actor=self.admin
-            )[0]
-        )
-        self.assertTrue(
-            fee_service.make_payment(
-                fee_id, 200, "Cash", "DASH-002", actor=self.admin
-            )[0]
-        )
-
-        stats = get_dashboard_statistics(actor=self.admin)
-
-        self.assertEqual(stats["total_fees_amount"], 1000)
-        self.assertEqual(stats["collected_fees"], 500)
-        self.assertEqual(stats["pending_fees"], 500)
-        self.assertEqual(stats["fee_payment_completion_rate"], 50.0)
     def test_dashboard_fee_analytics_aggregates_multiple_fees(self):
         self.assertTrue(
             fee_service.add_fee("STU001", "1000.00", "2026-12-01", actor=self.admin)[0]
@@ -447,14 +422,14 @@ if __name__ == "__main__":
 
         self.assertEqual(len(fee_ids), 2)
 
-        for fee_id in fee_ids:
-            fee = fee_service.get_fee(fee_id, actor=self.admin)
-            student_id = "STU001" if fee[1] == "STU001" else "STU002"
+        for fee in fees:
+            fee_id = fee[0]
+            student_id = fee[1]
             payment = 400 if student_id == "STU001" else 500
 
             self.assertTrue(
                 fee_service.make_payment(
-                    fee_id, payment, "UPI", f"AGG-{student_id}", actor=self.admin
+                    fee_id, payment, "UPI", f"AGG-{student_id}-{fee_id}", actor=self.admin
                 )[0]
             )
 
@@ -581,13 +556,15 @@ if __name__ == "__main__":
 
     def test_dashboard_satisfaction_metrics_are_role_scoped(self):
         self.assertTrue(
-            feedback_service.submit_feedback(
-                5, "Excellent hostel", actor=self.student1
+            feedback_service.add_feedback(
+                "STU001", 5, 5, 5, 5, 5, 5, 5, 5, 5,
+                "Excellent hostel", actor=self.student1
             )[0]
         )
         self.assertTrue(
-            feedback_service.submit_feedback(
-                3, "Needs improvement", actor=self.student2
+            feedback_service.add_feedback(
+                "STU002", 3, 3, 3, 3, 3, 3, 3, 3, 3,
+                "Needs improvement", actor=self.student2
             )[0]
         )
 
@@ -796,3 +773,18 @@ if __name__ == "__main__":
 
         admin_statuses = dict(admin_stats["complaint_status_counts"])
         self.assertEqual(admin_statuses.get("Resolved", 0), 1)
+
+if __name__ == "__main__":
+    unittest.main()
+
+
+
+
+
+
+
+
+
+
+
+
