@@ -36,11 +36,21 @@ def load_actor(actor):
 
     connection = get_connection()
     try:
-        row = connection.execute(
-            "SELECT id, username, email, role, is_active, full_name, phone "
-            "FROM users WHERE id = ?",
-            (actor["id"],),
-        ).fetchone()
+        user_cols = {col[1] for col in connection.execute("PRAGMA table_info(users)").fetchall()}
+        if "student_id" in user_cols:
+            row = connection.execute(
+                "SELECT id, username, email, role, is_active, full_name, phone, student_id "
+                "FROM users WHERE id = ?",
+                (actor["id"],),
+            ).fetchone()
+            student_id = row[7] if row else None
+        else:
+            row = connection.execute(
+                "SELECT id, username, email, role, is_active, full_name, phone "
+                "FROM users WHERE id = ?",
+                (actor["id"],),
+            ).fetchone()
+            student_id = None
     finally:
         connection.close()
 
@@ -55,6 +65,7 @@ def load_actor(actor):
         "session_token": token,
         "full_name": row[5],
         "phone": row[6],
+        "student_id": student_id,
     }
 
 
@@ -67,24 +78,49 @@ def require_role(actor, *allowed_roles):
 
 
 def resolve_student(actor):
-    """Resolve a student login by its unique email-to-student mapping."""
+    """Resolve a student login by its student_id or email mapping."""
     verified = require_role(actor, "student")
+    user_id = verified.get("id")
     email = (verified.get("email") or "").strip()
-    if not email:
-        raise AuthorizationError("This student account is not linked to a student record.")
+    username = (verified.get("username") or "").strip()
+    sid_from_actor = (verified.get("student_id") or "").strip()
 
     connection = get_connection()
     try:
-        rows = connection.execute(
-            "SELECT id, student_id FROM students WHERE lower(trim(email)) = lower(trim(?))",
-            (email,),
-        ).fetchall()
+        rows = []
+        if sid_from_actor:
+            rows = connection.execute(
+                "SELECT id, student_id FROM students WHERE lower(trim(student_id)) = lower(trim(?))",
+                (sid_from_actor,),
+            ).fetchall()
+
+        if not rows and user_id:
+            user_cols = {col[1] for col in connection.execute("PRAGMA table_info(users)").fetchall()}
+            if "student_id" in user_cols:
+                u_row = connection.execute("SELECT student_id FROM users WHERE id = ?", (user_id,)).fetchone()
+                if u_row and u_row[0]:
+                    rows = connection.execute(
+                        "SELECT id, student_id FROM students WHERE lower(trim(student_id)) = lower(trim(?))",
+                        (u_row[0].strip(),),
+                    ).fetchall()
+
+        if not rows and email:
+            rows = connection.execute(
+                "SELECT id, student_id FROM students WHERE lower(trim(email)) = lower(trim(?))",
+                (email,),
+            ).fetchall()
+
+        if not rows and username:
+            rows = connection.execute(
+                "SELECT id, student_id FROM students WHERE lower(trim(student_id)) = lower(trim(?))",
+                (username,),
+            ).fetchall()
     finally:
         connection.close()
 
     if len(rows) != 1:
         raise AuthorizationError(
-            "The student account must match exactly one student record by email."
+            "The student account must match exactly one student record."
         )
     return rows[0]
 

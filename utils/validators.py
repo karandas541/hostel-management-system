@@ -49,6 +49,54 @@ def validate_phone(value, label="Phone number"):
     return text
 
 
+def validate_real_mobile_phone(value, label="Mobile number"):
+    text = str(value or "").strip()
+    if not text:
+        raise ValueError(f"{label} is mandatory and cannot be left blank.")
+    if not text.isdigit():
+        raise ValueError(f"{label} must contain numbers (0-9) only. Spaces, letters, or symbols are not allowed.")
+    if len(text) != 10:
+        raise ValueError(f"{label} must be exactly 10 digits. You entered {len(text)} digits.")
+    if text[0] not in "6789":
+        raise ValueError(f"Invalid {label.lower()}! Mobile number must start with 6, 7, 8, or 9.")
+    if len(set(text)) <= 2:
+        raise ValueError(f"Invalid {label.lower()}! Repetitive or fake number '{text}' is not allowed.")
+    trivial_sequences = {
+        "1234567890", "0123456789", "9876543210", "0987654321",
+        "2345678901", "3456789012", "4567890123", "5678901234"
+    }
+    if text in trivial_sequences:
+        raise ValueError(f"Invalid {label.lower()}! Sequential number '{text}' is not allowed.")
+    return text
+
+
+def validate_real_gmail(value, label="Email address"):
+    text = str(value or "").strip()
+    if not text:
+        raise ValueError(f"{label} is mandatory and cannot be left blank.")
+    parts = text.split("@")
+    if len(parts) != 2:
+        raise ValueError(f"{label} must contain exactly one '@' character.")
+    username, domain = parts[0], parts[1].lower()
+    if domain != "gmail.com":
+        raise ValueError("Only official '@gmail.com' addresses are allowed.")
+    if len(username) < 6:
+        raise ValueError(f"Gmail username is too short ({len(username)} chars). Minimum 6 characters required.")
+    if len(username) > 30:
+        raise ValueError(f"Gmail username is too long ({len(username)} chars). Maximum 30 characters allowed.")
+    if username.startswith("."):
+        raise ValueError("Gmail username cannot begin with a period (.).")
+    if username.endswith("."):
+        raise ValueError("Gmail username cannot end with a period (.).")
+    if ".." in username:
+        raise ValueError("Gmail username cannot contain consecutive periods (..).")
+    if not re.match(r"^[a-zA-Z0-9.]+$", username):
+        invalid_chars = set(re.findall(r"[^a-zA-Z0-9.]", username))
+        invalid_str = ", ".join(f"'{c}'" for c in sorted(invalid_chars))
+        raise ValueError(f"Real Gmail does not allow special characters: {invalid_str}. Only letters, numbers, and periods are allowed.")
+    return text.lower()
+
+
 def validate_iso_date(value, label="Date"):
     text = str(value or "").strip()
     if not text:

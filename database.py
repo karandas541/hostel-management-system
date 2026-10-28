@@ -35,6 +35,7 @@ def initialize_database():
             role TEXT NOT NULL CHECK(role IN ('admin', 'student')),
             full_name TEXT,
             phone TEXT,
+            student_id TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             is_active INTEGER DEFAULT 1
         )
@@ -48,6 +49,8 @@ def initialize_database():
         cursor.execute("ALTER TABLE users ADD COLUMN full_name TEXT")
     if "phone" not in user_columns:
         cursor.execute("ALTER TABLE users ADD COLUMN phone TEXT")
+    if "student_id" not in user_columns:
+        cursor.execute("ALTER TABLE users ADD COLUMN student_id TEXT")
 
     # =========================
     # STUDENTS TABLE
@@ -194,11 +197,19 @@ def initialize_database():
             entry_time TEXT,
             exit_time TEXT,
             attendance_date TEXT NOT NULL,
+            remarks TEXT,
 
             FOREIGN KEY(student_id)
                 REFERENCES students(id)
         )
     """)
+
+    # Backward-compatible additive migration for attendance remarks
+    attendance_cols = {
+        col[1] for col in cursor.execute("PRAGMA table_info(attendance)").fetchall()
+    }
+    if "remarks" not in attendance_cols:
+        cursor.execute("ALTER TABLE attendance ADD COLUMN remarks TEXT")
 
     # =========================
     # FEEDBACK TABLE

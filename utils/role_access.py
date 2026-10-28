@@ -18,7 +18,6 @@ ADMIN_MENU = [
     "Notifications",
     "Quality Dashboard",
     "Reports",
-    "Profile",
     "Settings"
 ]
 
@@ -35,7 +34,6 @@ STUDENT_MENU = [
     "Attendance",
     "Feedback",
     "Notifications",
-    "Profile",
     "Settings"
 ]
 
