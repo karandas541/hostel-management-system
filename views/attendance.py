@@ -414,7 +414,7 @@ class AttendanceManagement(ctk.CTkToplevel):
                 entry_time,
                 exit_time,
                 attendance_date
-            ) = record
+            ) = record[:6]
 
             # Convert values to string safely
 
@@ -536,7 +536,7 @@ class AttendanceManagement(ctk.CTkToplevel):
                 entry_time,
                 exit_time,
                 attendance_date
-            ) = record
+            ) = record[:6]
 
             if exit_time:
 

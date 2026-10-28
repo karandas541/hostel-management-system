@@ -28,32 +28,9 @@ def _relaunch_with_project_environment():
 def main():
     _relaunch_with_project_environment()
 
-    try:
-        import customtkinter as ctk
-    except ModuleNotFoundError as error:
-        if error.name == "customtkinter":
-            raise SystemExit(
-                "Project dependencies are missing. Set up the environment with "
-                "`.venv\\Scripts\\python.exe -m pip install -r requirements.txt`, "
-                "then run `python main.py` again."
-            ) from error
-        raise
-
-    # CustomTkinter falls back to its coarse circle renderer when Windows
-    # cannot load the bundled OTF shapes font. Polygon rendering avoids that
-    # fallback's visibly rough edges during resize and scroll repainting.
-    if ctk.DrawEngine.preferred_drawing_method == "circle_shapes":
-        ctk.DrawEngine.preferred_drawing_method = "polygon_shapes"
-
-    from database import initialize_database
-    from views.login import LoginWindow
-
-    initialize_database()
-    ctk.set_default_color_theme("blue")
-
-    app = LoginWindow()
-
-    app.mainloop()
+    import flet as ft
+    from app_flet import main as flet_main
+    ft.run(flet_main)
 
 
 if __name__ == "__main__":

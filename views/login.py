@@ -15,25 +15,25 @@ from views.dashboard import DashboardWindow
 # Design tokens
 # ---------------------------------------------------------------------------
 COLORS = {
-    "window": "#F2F5FA",
-    "surface": "#FFFFFF",
-    "surface_soft": "#F7F9FC",
-    "surface_hover": "#EEF4FA",
-    "navy": "#102A43",
-    "navy_light": "#183B56",
-    "blue": "#246BFD",
-    "blue_hover": "#1558E8",
-    "blue_pale": "#EAF1FF",
-    "teal": "#50D6C5",
-    "text": "#172B4D",
-    "muted": "#65758B",
-    "subtle": "#91A0B4",
-    "border": "#DFE7F1",
-    "danger": "#B42332",
-    "danger_bg": "#FFF0F0",
-    "success": "#137A55",
-    "success_bg": "#EAF8F1",
-    "white": "#FFFFFF",
+    "window":       "#F8FAFC",   # slate-50  — matches new page token
+    "surface":      "#FFFFFF",
+    "surface_soft": "#F1F5F9",   # slate-100
+    "surface_hover":"#E9EEF5",
+    "navy":         "#0F172A",   # slate-950 (brand panel BG)
+    "navy_light":   "#1E293B",   # slate-800
+    "blue":         "#6366F1",   # indigo-500  ← SaaS accent
+    "blue_hover":   "#4F46E5",   # indigo-600
+    "blue_pale":    "#EEF2FF",   # indigo-50
+    "teal":         "#818CF8",   # indigo-400  (brand panel highlights)
+    "text":         "#0F172A",   # slate-950
+    "muted":        "#64748B",   # slate-500
+    "subtle":       "#94A3B8",   # slate-400
+    "border":       "#E2E8F0",   # slate-200
+    "danger":       "#EF4444",   # red-500
+    "danger_bg":    "#FEF2F2",
+    "success":      "#10B981",   # emerald-500
+    "success_bg":   "#ECFDF5",
+    "white":        "#FFFFFF",
 }
 
 
@@ -203,7 +203,12 @@ class BrandCanvas(tk.Canvas):
         self._build_scene(w, h)
 
     def _corner_masks(self, w, h):
-        """Paint the four corners white so the panel looks rounded."""
+        """Paint the four corners with the window BG so the panel looks rounded.
+
+        Uses COLORS["window"] (not hard-coded white) so the mask is invisible
+        in both light and dark modes.
+        """
+        corner_bg = COLORS["window"]
         r = self.px(self.RADIUS)
         steps = 12
         specs = (
@@ -218,7 +223,7 @@ class BrandCanvas(tk.Canvas):
                 a = math.radians(start - 90 * i / steps)
                 pts += [cx + r * math.cos(a), cy - r * math.sin(a)]
             self.create_polygon(
-                pts, fill=COLORS["surface"], outline=COLORS["surface"]
+                pts, fill=corner_bg, outline=corner_bg
             )
 
     def _build_scene(self, w, h):
@@ -413,7 +418,7 @@ class LoginWindow(ctk.CTk):
         ctk.set_appearance_mode("light")
 
         self.title("Hostel Management System | Sign in")
-        self.minsize(920, 620)
+        self.minsize(680, 440)
         self.configure(fg_color=COLORS["window"])
         self._center_window()
 
@@ -436,6 +441,15 @@ class LoginWindow(ctk.CTk):
         self.brand.start()
         self._later(120, self._run_entrance)
         self.protocol("WM_DELETE_WINDOW", self.close_window)
+
+        # Ensure window appears in foreground on Windows
+        self.lift()
+        try:
+            self.attributes("-topmost", True)
+            self.after(250, lambda: self.attributes("-topmost", False) if self.winfo_exists() else None)
+        except Exception:
+            pass
+        self.focus_force()
 
     # ------------------------------------------------------------------
     # Scheduling helpers (every callback is tracked so we can cancel on exit)
@@ -471,9 +485,17 @@ class LoginWindow(ctk.CTk):
             scale = float(self._get_window_scaling())
         except Exception:
             scale = 1.0
-        x = max(0, int((self.winfo_screenwidth() - self.DESIGN_W * scale) // 2))
-        y = max(0, int((self.winfo_screenheight() - self.DESIGN_H * scale) // 2) - 20)
-        self.geometry(f"{self.DESIGN_W}x{self.DESIGN_H}+{x}+{y}")
+
+        sw = self.winfo_screenwidth()
+        sh = self.winfo_screenheight()
+
+        # Compute dimensions that fit comfortably within any monitor resolution / DPI
+        target_w = min(1040, max(680, int(sw / scale * 0.90)))
+        target_h = min(680, max(440, int((sh - 40) / scale * 0.90)))
+
+        x = max(0, int((sw - target_w * scale) // 2))
+        y = max(0, int((sh - target_h * scale) // 2) - 20)
+        self.geometry(f"{target_w}x{target_h}+{x}+{y}")
 
     def _build_shell(self):
         self.shell = ctk.CTkFrame(
@@ -484,8 +506,8 @@ class LoginWindow(ctk.CTk):
             border_color=COLORS["border"],
         )
         self.shell.pack(fill="both", expand=True, padx=24, pady=24)
-        self.shell.grid_columnconfigure(0, weight=5, minsize=370)
-        self.shell.grid_columnconfigure(1, weight=6, minsize=430)
+        self.shell.grid_columnconfigure(0, weight=5, minsize=260)
+        self.shell.grid_columnconfigure(1, weight=6, minsize=300)
         self.shell.grid_rowconfigure(0, weight=1)
 
     def _build_brand_panel(self):

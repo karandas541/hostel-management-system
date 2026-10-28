@@ -26,6 +26,45 @@ from utils.ui_theme import COLORS, get_palette, apply_professional_style
 from utils.theme_manager import ThemeManager
 
 
+# ─── sidebar menu items with emoji icons ────────────────────────────────────
+_MENU_ICONS = {
+    "Dashboard":        "⊞",
+    "Students":         "👤",
+    "Rooms":            "🛏",
+    "Fees":             "💳",
+    "Complaints":       "💬",
+    "Attendance":       "📋",
+    "Feedback":         "⭐",
+    "Quality Dashboard":"📊",
+    "Reports":          "📄",
+    "Profile":          "🔘",
+    "Settings":         "⚙",
+    "Notifications":    "🔔",
+}
+
+# card accent colours (left-border stripe per metric category)
+_CARD_ACCENTS = {
+    "Total Students":    "#6366F1",
+    "Rooms":             "#8B5CF6",
+    "Total Beds":        "#06B6D4",
+    "Occupied Beds":     "#F59E0B",
+    "Available Beds":    "#10B981",
+    "Occupancy Rate":    "#3B82F6",
+    "Fees Collected":    "#10B981",
+    "Fees Pending":      "#EF4444",
+    "Open Complaints":   "#F59E0B",
+    "Avg. Satisfaction": "#6366F1",
+    # student cards
+    "Your Room":         "#6366F1",
+    "Your Bed":          "#8B5CF6",
+    "Fees Paid":         "#10B981",
+    "Fees Outstanding":  "#EF4444",
+    "Your Complaints":   "#F59E0B",
+    "Open Complaints ":  "#EF4444",
+    "Your Satisfaction": "#6366F1",
+}
+
+
 class DashboardWindow(ctk.CTk):
 
     def __init__(self, user):
@@ -35,53 +74,46 @@ class DashboardWindow(ctk.CTk):
         self.user = user
         ThemeManager.set_theme(ThemeManager.load_user_theme(self.user["id"]))
 
-        self.title("Hostel Management System - Dashboard")
-        self.geometry("1100x700")
-        self.minsize(900, 600)
-        self.state("zoomed")
-        self.configure(fg_color=COLORS["page"])
+        self.title("Hostel Management System — Dashboard")
+        self.minsize(720, 480)
+        colors = get_palette()
+        self.configure(fg_color=colors["page"])
 
         ctk.set_default_color_theme("blue")
 
-        # =====================================================
-        # Keep references to opened windows
-        # =====================================================
-
-        self.students_window = None
-        self.rooms_window = None
-        self.fees_window = None
-        self.complaints_window = None
-        self.attendance_window = None
-        self.feedback_window = None
-        self.quality_window = None
-        self.reports_window = None
-        self.profile_window = None
-        self.settings_window = None
+        # ── window references ────────────────────────────────────────────────
+        self.students_window    = None
+        self.rooms_window       = None
+        self.fees_window        = None
+        self.complaints_window  = None
+        self.attendance_window  = None
+        self.feedback_window    = None
+        self.quality_window     = None
+        self.reports_window     = None
+        self.profile_window     = None
+        self.settings_window    = None
         self.notifications_window = None
         self._active_feature_window = None
 
-        # =====================================================
-        # Main area reference
-        # =====================================================
-
-        self.main_area = None
+        # ── content area refs ────────────────────────────────────────────────
+        self.main_area        = None
         self.dashboard_scroll = None
         self.dashboard_figure = None
         self.dashboard_canvas = None
+        self._active_menu_btn = None   # currently highlighted sidebar button
 
-        # =====================================================
-        # Create UI
-        # =====================================================
-
+        # ── build UI ─────────────────────────────────────────────────────────
         self.create_sidebar()
         self.create_dashboard()
-
         self.update_notification_count()
 
-        # =====================================================
-        # Keyboard Shortcuts
-        # =====================================================
+        # ── maximize on first launch, then allow free resize ─────────────────
+        self.update_idletasks()   # force geometry to settle first
+        self.state("zoomed")      # open maximized
+        self.lift()
+        self.focus_force()
 
+        # ── keyboard shortcuts ───────────────────────────────────────────────
         self.shortcut_manager = ShortcutManager(
             self,
             home_callback=self.go_home,
@@ -92,826 +124,755 @@ class DashboardWindow(ctk.CTk):
             notifications_callback=lambda: self.menu_clicked("Notifications"),
             logout_callback=self.logout,
             theme_callback=self.toggle_theme,
-            exit_callback=self.exit_application
+            exit_callback=self.exit_application,
         )
 
-    # =========================================================
+    # =========================================================================
     # SIDEBAR
-    # =========================================================
+    # =========================================================================
 
     def create_sidebar(self):
+        colors = get_palette()
 
         self.sidebar = ctk.CTkFrame(
             self,
-            width=220,
+            width=258,
             corner_radius=0,
-            fg_color=COLORS["nav"]
+            fg_color=colors["nav"],
         )
-
-        self.sidebar.pack(
-            side="left",
-            fill="y"
-        )
-
+        self.sidebar.pack(side="left", fill="y")
         self.sidebar.pack_propagate(False)
 
-        # =====================================================
-        # Sidebar Title
-        # =====================================================
-
-        title = ctk.CTkLabel(
+        # ── logo / brand area ────────────────────────────────────────────────
+        brand_frame = ctk.CTkFrame(
             self.sidebar,
-            text="HOSTEL\nMANAGEMENT",
-            text_color="#FFFFFF",
-            font=ctk.CTkFont(
-                size=20,
-                weight="bold"
-            )
+            fg_color="transparent",
+            height=72,
         )
+        brand_frame.pack(fill="x", padx=16, pady=(22, 4))
+        brand_frame.pack_propagate(False)
 
-        title.pack(
-            pady=(30, 20)
+        logo_pill = ctk.CTkFrame(
+            brand_frame,
+            width=42,
+            height=42,
+            corner_radius=12,
+            fg_color=colors["accent"],
         )
+        logo_pill.place(x=0, y=15)
+        logo_pill.pack_propagate(False)
+        ctk.CTkLabel(
+            logo_pill,
+            text="H",
+            font=ctk.CTkFont(size=22, weight="bold"),
+            text_color="#FFFFFF",
+        ).place(relx=0.5, rely=0.5, anchor="center")
 
         ctk.CTkLabel(
-            self.sidebar,
-            text=f"{self.user['username']}  ·  {self.user['role'].title()}",
-            text_color="#AFC1D5",
-            font=ctk.CTkFont(size=12),
-        ).pack(pady=(0, 16))
+            brand_frame,
+            text="Hostel",
+            font=ctk.CTkFont(size=17, weight="bold"),
+            text_color="#FFFFFF",
+            anchor="w",
+        ).place(x=54, y=17)
+        ctk.CTkLabel(
+            brand_frame,
+            text="Management System",
+            font=ctk.CTkFont(size=10),
+            text_color=colors["muted"],
+            anchor="w",
+        ).place(x=54, y=40)
 
-        # =====================================================
-        # Scrollable Menu
-        # =====================================================
+        # thin divider
+        ctk.CTkFrame(
+            self.sidebar,
+            height=1,
+            fg_color=colors["nav_hover"],
+            corner_radius=0,
+        ).pack(fill="x", padx=16, pady=(12, 8))
+
+        # ── menu area ───────────────────────────────────────────────────────
+        menu_label = ctk.CTkLabel(
+            self.sidebar,
+            text="NAVIGATION",
+            font=ctk.CTkFont(size=9, weight="bold"),
+            text_color=colors["subtle"],
+            anchor="w",
+        )
+        menu_label.pack(fill="x", padx=20, pady=(4, 6))
 
         self.menu_frame = ctk.CTkScrollableFrame(
             self.sidebar,
-            width=190,
             corner_radius=0,
-            fg_color="transparent"
+            fg_color="transparent",
+            scrollbar_button_color=colors["nav_hover"],
+            scrollbar_button_hover_color=colors["muted"],
         )
+        self.menu_frame.pack(fill="both", expand=True, padx=10, pady=2)
 
-        self.menu_frame.pack(
-            fill="both",
-            expand=True,
-            padx=5,
-            pady=5
-        )
+        # ── sidebar buttons ──────────────────────────────────────────────────
+        menu_items = get_menu_for_role(self.user["role"])
+        self._menu_buttons = {}
 
-        # =====================================================
-        # Sidebar Buttons
-        # =====================================================
+        for name in menu_items:
+            icon = _MENU_ICONS.get(name, "•")
+            btn = ctk.CTkButton(
+                self.menu_frame,
+                text=f"  {icon}   {name}",
+                height=40,
+                anchor="w",
+                corner_radius=10,
+                fg_color="transparent",
+                hover_color=colors["nav_hover"],
+                text_color="#E2E8F0",
+                font=ctk.CTkFont(size=13, weight="bold"),
+                command=lambda n=name: self.menu_clicked(n),
+            )
+            btn.pack(fill="x", pady=2)
+            self._menu_buttons[name] = btn
 
-        buttons = get_menu_for_role(self.user["role"])
-        icons = {
-            "Dashboard": "⌂", "Students": "♙", "Rooms": "▦", "Fees": "₹",
-            "Complaints": "◇", "Attendance": "◷", "Feedback": "☆",
-            "Quality Dashboard": "◈", "Reports": "▤", "Profile": "●",
-            "Settings": "⚙", "Notifications": "♧",
-        }
+        # keep notification button accessible for badge update
+        self.notifications_button = self._menu_buttons.get("Notifications")
 
-        for button_name in buttons:
-
-            if button_name == "Notifications":
-
-                self.notifications_button = ctk.CTkButton(
-                    self.menu_frame,
-                    text=f"{icons.get(button_name, '•')}   Notifications",
-                    width=180,
-                    height=40,
-                    anchor="w", fg_color="transparent", hover_color=COLORS["nav_hover"],
-                    text_color="#E5EEF8", corner_radius=10, font=ctk.CTkFont(size=14, weight="bold"),
-                    command=lambda name=button_name:
-                    self.menu_clicked(name)
-                )
-
-                self.notifications_button.pack(
-                    pady=6
-                )
-
-            else:
-
-                button = ctk.CTkButton(
-                    self.menu_frame,
-                    text=f"{icons.get(button_name, '•')}   {button_name}",
-                    width=180,
-                    height=40,
-                    anchor="w", fg_color="transparent", hover_color=COLORS["nav_hover"],
-                    text_color="#E5EEF8", corner_radius=10, font=ctk.CTkFont(size=14, weight="bold"),
-                    command=lambda name=button_name:
-                    self.menu_clicked(name)
-                )
-
-                button.pack(
-                    pady=6
-                )
-
-        # =====================================================
-        # Logout Button
-        # =====================================================
-
-        logout_button = ctk.CTkButton(
+        # ── divider before user section ──────────────────────────────────────
+        ctk.CTkFrame(
             self.sidebar,
-            text="Logout",
-            width=180,
+            height=1,
+            fg_color=colors["nav_hover"],
+            corner_radius=0,
+        ).pack(fill="x", padx=16, pady=(8, 0))
+
+        # ── user info pill (bottom) ──────────────────────────────────────────
+        user_row = ctk.CTkFrame(
+            self.sidebar,
+            fg_color=colors["nav_surface"],
+            corner_radius=12,
+            height=58,
+        )
+        user_row.pack(fill="x", padx=12, pady=(10, 4))
+        user_row.pack_propagate(False)
+
+        # avatar circle
+        initials = (self.user.get("username") or "?")[:2].upper()
+        avatar = ctk.CTkFrame(
+            user_row,
+            width=36,
+            height=36,
+            corner_radius=18,
+            fg_color=colors["accent"],
+        )
+        avatar.place(x=10, rely=0.5, anchor="w")
+        avatar.pack_propagate(False)
+        ctk.CTkLabel(
+            avatar,
+            text=initials,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            text_color="#FFFFFF",
+        ).place(relx=0.5, rely=0.5, anchor="center")
+
+        ctk.CTkLabel(
+            user_row,
+            text=self.user["username"],
+            font=ctk.CTkFont(size=13, weight="bold"),
+            text_color="#E2E8F0",
+            anchor="w",
+        ).place(x=56, y=10)
+        ctk.CTkLabel(
+            user_row,
+            text=self.user["role"].title(),
+            font=ctk.CTkFont(size=10),
+            text_color=colors["muted"],
+            anchor="w",
+        ).place(x=56, y=30)
+
+        # ── logout button ────────────────────────────────────────────────────
+        ctk.CTkButton(
+            self.sidebar,
+            text="⏻   Logout",
             height=40,
-            fg_color="#A94442",
-            hover_color="#893735",
             corner_radius=10,
-            font=ctk.CTkFont(size=14, weight="bold"),
-            command=self.logout
-        )
+            fg_color=colors["danger_soft"],
+            hover_color=colors["danger"],
+            text_color=colors["danger"],
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=self.logout,
+        ).pack(fill="x", padx=12, pady=(6, 18))
 
-        logout_button.pack(
-            side="bottom",
-            pady=20
-        )
-
-    # =========================================================
-    # DASHBOARD
-    # =========================================================
+    # =========================================================================
+    # DASHBOARD CONTENT
+    # =========================================================================
 
     def create_dashboard(self):
+        colors = get_palette()
 
-        # IMPORTANT:
-        # Create main_area only once.
-        # This prevents Ctrl + R from creating duplicate
-        # dashboard frames.
-
+        # main_area created only once
         if self.main_area is None:
-
             self.main_area = ctk.CTkFrame(
                 self,
                 corner_radius=0,
-                fg_color=COLORS["page"]
+                fg_color=colors["page"],
             )
+            self.main_area.pack(side="right", fill="both", expand=True)
 
-            self.main_area.pack(
-                side="right",
-                fill="both",
-                expand=True
-            )
-
+        # ── (re)create scroll frame ──────────────────────────────────────────
         if self.dashboard_scroll is None or not self.dashboard_scroll.winfo_exists():
             self.dashboard_scroll = ctk.CTkScrollableFrame(
                 self.main_area,
                 corner_radius=0,
-                fg_color="transparent",
-                scrollbar_button_color="#7B8CA3",
-                scrollbar_button_hover_color="#53677F",
+                fg_color=colors["page"],      # explicit — prevents artifact
+                scrollbar_button_color=colors["border"],
+                scrollbar_button_hover_color=colors["muted"],
             )
             self.dashboard_scroll.pack(fill="both", expand=True)
 
+        # close any previous matplotlib figure
         if self.dashboard_figure is not None:
             plt.close(self.dashboard_figure)
             self.dashboard_figure = None
             self.dashboard_canvas = None
 
-        # =====================================================
-        # Header
-        # =====================================================
+        stats = get_dashboard_statistics(actor=self.user)
+
+        self._build_header(colors)
+        self._build_stat_cards(stats, colors)
+        self._build_summary_bar(stats, colors)
+        if self.user["role"] == "admin":
+            self.create_dashboard_charts(stats)
+        self._build_activity_panels(stats, colors)
+        self.apply_visual_theme()
+
+    # ─── header ──────────────────────────────────────────────────────────────
+
+    def _build_header(self, colors):
+        from datetime import datetime
+        hour = datetime.now().hour
+        greeting = (
+            "Good morning" if hour < 12
+            else "Good afternoon" if hour < 17
+            else "Good evening"
+        )
 
         header = ctk.CTkFrame(
             self.dashboard_scroll,
-            height=86,
-            fg_color=COLORS["surface"], border_color=COLORS["border"],
-            border_width=1, corner_radius=14
+            height=80,
+            fg_color=colors["surface"],
+            border_color=colors["border"],
+            border_width=1,
+            corner_radius=16,
         )
+        header.pack(fill="x", padx=24, pady=(20, 8))
+        header.pack_propagate(False)
 
-        header.pack(
-            fill="x",
-            padx=20,
-            pady=20
-        )
+        left = ctk.CTkFrame(header, fg_color="transparent")
+        left.pack(side="left", padx=20, pady=0, fill="y")
 
-        welcome = ctk.CTkLabel(
-            header,
-            text=f"Welcome, {self.user['username']} 👋",
-            font=ctk.CTkFont(
-                size=26,
-                weight="bold"
-            )
-        )
+        ctk.CTkLabel(
+            left,
+            text=f"{greeting}, {self.user['username']} 👋",
+            font=ctk.CTkFont(size=22, weight="bold"),
+            text_color=colors["text"],
+            anchor="w",
+        ).pack(anchor="w", pady=(16, 0))
 
-        welcome.pack(
-            side="left",
-            padx=20,
-            pady=20
-        )
+        ctk.CTkLabel(
+            left,
+            text="Here's what's happening in your hostel today.",
+            font=ctk.CTkFont(size=12),
+            text_color=colors["muted"],
+            anchor="w",
+        ).pack(anchor="w")
 
-        role = ctk.CTkLabel(
-            header,
-            text=f"Role: {self.user['role'].upper()}",
-            font=ctk.CTkFont(
-                size=14
-            ), text_color=COLORS["accent"]
-        )
+        right = ctk.CTkFrame(header, fg_color="transparent")
+        right.pack(side="right", padx=20, fill="y")
 
-        role.pack(
-            side="right",
-            padx=20
-        )
+        # role pill
+        role_color = colors["accent_soft"]
+        ctk.CTkFrame(
+            right,
+            width=90, height=28,
+            corner_radius=14,
+            fg_color=role_color,
+            border_color=colors["accent"],
+            border_width=1,
+        ).place(relx=1.0, rely=0.5, anchor="e", x=-10)
 
-        # =====================================================
-        # Statistics
-        # =====================================================
+        ctk.CTkLabel(
+            right,
+            text=f"  {self.user['role'].upper()}  ",
+            font=ctk.CTkFont(size=10, weight="bold"),
+            text_color=colors["accent"],
+            corner_radius=14,
+            fg_color=role_color,
+            width=90,
+            height=28,
+        ).pack(anchor="e", pady=(26, 0))
 
-        stats = get_dashboard_statistics(actor=self.user)
+        # quick-action buttons
+        actions = ctk.CTkFrame(header, fg_color="transparent")
+        actions.pack(side="right", padx=6, fill="y")
 
-        cards_frame = ctk.CTkFrame(
-            self.dashboard_scroll,
-            fg_color="transparent"
-        )
+        ctk.CTkButton(
+            actions,
+            text="⟳  Refresh",
+            width=96,
+            height=32,
+            corner_radius=8,
+            fg_color=colors["surface_alt"],
+            hover_color=colors["border"],
+            text_color=colors["text_2"],
+            font=ctk.CTkFont(size=12),
+            command=self.refresh_dashboard,
+        ).pack(anchor="e", pady=(24, 4))
 
-        cards_frame.pack(
-            fill="x",
-            padx=20,
-            pady=10
-        )
+    # ─── stat cards ──────────────────────────────────────────────────────────
 
-        for column in range(4):
-            cards_frame.grid_columnconfigure(column, weight=1, uniform="dashboard_cards")
+    def _build_stat_cards(self, stats, colors):
         if self.user["role"] == "admin":
             satisfaction = (
-                f"{stats['average_satisfaction']}/5"
-                if stats["average_satisfaction"] is not None else "No feedback"
+                f"{stats['average_satisfaction']:.1f}/5"
+                if stats["average_satisfaction"] is not None else "—"
             )
             cards = [
-                ("Total Students", str(stats["total_students"])),
-                ("Rooms", str(stats["total_rooms"])),
-                ("Total Beds", str(stats["total_beds"])),
-                ("Occupied Beds", str(stats["occupied_beds"])),
-                ("Available Beds", str(stats["available_beds"])),
-                ("Occupancy Rate", f"{stats['occupancy_rate']:.1f}%"),
-                ("Fees Collected", f"₹{stats['collected_fees']:,.2f}"),
-                ("Fees Pending", f"₹{stats['pending_fees']:,.2f}"),
+                ("Total Students",  str(stats["total_students"])),
+                ("Rooms",           str(stats["total_rooms"])),
+                ("Available Beds",  str(stats["available_beds"])),
+                ("Occupancy Rate",  f"{stats['occupancy_rate']:.0f}%"),
+                ("Fees Collected",  f"₹{stats['collected_fees']:,.0f}"),
+                ("Fees Pending",    f"₹{stats['pending_fees']:,.0f}"),
                 ("Open Complaints", str(stats["pending_complaints"])),
                 ("Avg. Satisfaction", satisfaction),
             ]
         else:
             room = stats["student_room_number"] or "Not assigned"
-            bed = str(stats["student_bed_number"]) if stats["student_bed_number"] is not None else "—"
+            bed  = str(stats["student_bed_number"]) if stats["student_bed_number"] is not None else "—"
             satisfaction = (
-                f"{stats['average_satisfaction']}/5"
-                if stats["average_satisfaction"] is not None else "No feedback"
+                f"{stats['average_satisfaction']:.1f}/5"
+                if stats["average_satisfaction"] is not None else "—"
             )
             cards = [
-                ("Your Room", room),
-                ("Your Bed", bed),
-                ("Fees Paid", f"₹{stats['collected_fees']:,.2f}"),
-                ("Fees Outstanding", f"₹{stats['pending_fees']:,.2f}"),
-                ("Your Complaints", str(stats["total_complaints"])),
-                ("Open Complaints", str(stats["pending_complaints"])),
-                ("Your Satisfaction", satisfaction),
+                ("Your Room",        room),
+                ("Your Bed",         bed),
+                ("Fees Paid",        f"₹{stats['collected_fees']:,.0f}"),
+                ("Fees Outstanding", f"₹{stats['pending_fees']:,.0f}"),
+                ("Your Complaints",  str(stats["total_complaints"])),
+                ("Open Complaints",  str(stats["pending_complaints"])),
+                ("Your Satisfaction",satisfaction),
             ]
 
-        for index, (title, value) in enumerate(cards):
-            self.create_card(cards_frame, title, value, index % 4, index // 4)
+        grid = ctk.CTkFrame(self.dashboard_scroll, fg_color="transparent")
+        grid.pack(fill="x", padx=24, pady=(8, 4))
 
-        # =====================================================
-        # Quality Summary
-        # =====================================================
+        cols = 4
+        for c in range(cols):
+            grid.grid_columnconfigure(c, weight=1, uniform="cards")
 
-        quality_frame = ctk.CTkFrame(self.dashboard_scroll, fg_color=COLORS["surface"],
-                                      border_color=COLORS["border"], border_width=1, corner_radius=14)
+        for idx, (title, value) in enumerate(cards):
+            self._create_card(grid, title, value, idx % cols, idx // cols, colors)
 
-        quality_frame.pack(fill="x", padx=20, pady=(10, 12))
+    def _create_card(self, parent, title, value, col, row, colors):
+        accent = _CARD_ACCENTS.get(title, colors["accent"])
 
-        quality_title_text = (
-            "Q08 — Improve User Satisfaction"
-            if self.user["role"] == "admin"
-            else "Your Hostel Overview"
+        # outer card frame
+        card = ctk.CTkFrame(
+            parent,
+            height=104,
+            fg_color=colors["surface"],
+            border_color=colors["border"],
+            border_width=1,
+            corner_radius=14,
         )
-        quality_title = ctk.CTkLabel(
-            quality_frame,
-            text=quality_title_text,
-            font=ctk.CTkFont(
-                size=20,
-                weight="bold"
-            )
-        )
+        card.grid(row=row, column=col, padx=6, pady=6, sticky="nsew")
+        card.grid_propagate(False)
 
-        quality_title.pack(
-            pady=(30, 10)
+        # coloured left accent bar
+        bar = ctk.CTkFrame(
+            card,
+            width=4,
+            corner_radius=2,
+            fg_color=accent,
         )
+        bar.place(x=0, rely=0.15, relheight=0.7)
+        # title
+        ctk.CTkLabel(
+            card,
+            text=title.upper(),
+            font=ctk.CTkFont(size=9, weight="bold"),
+            text_color=colors["muted"],
+            anchor="w",
+        ).place(x=20, y=20)
+
+        # value
+        ctk.CTkLabel(
+            card,
+            text=value,
+            font=ctk.CTkFont(size=28, weight="bold"),
+            text_color=accent,
+            anchor="w",
+        ).place(x=20, y=44)
+
+    # ─── summary bar ─────────────────────────────────────────────────────────
+
+    def _build_summary_bar(self, stats, colors):
+        bar = ctk.CTkFrame(
+            self.dashboard_scroll,
+            fg_color=colors["surface"],
+            border_color=colors["border"],
+            border_width=1,
+            corner_radius=14,
+            height=58,
+        )
+        bar.pack(fill="x", padx=24, pady=(6, 10))
+        bar.pack_propagate(False)
 
         if self.user["role"] == "admin":
             fee_completion = (
                 f"{stats['fee_payment_completion_rate']}%"
-                if stats["fee_payment_completion_rate"] is not None else "No fees recorded"
+                if stats["fee_payment_completion_rate"] is not None
+                else "No fees"
             )
-            summary = (
-                f"Feedback responses: {stats['feedback_count']}    •    "
-                f"Complaint resolution: {stats['complaint_resolution_rate']}%    •    "
-                f"Fee completion: {fee_completion}"
-            )
+            parts = [
+                ("📁 Feedback responses", str(stats["feedback_count"])),
+                ("✅ Resolution rate", f"{stats['complaint_resolution_rate']}%"),
+                ("💳 Fee completion", fee_completion),
+            ]
         else:
-            room_summary = (
+            room_text = (
                 f"Room {stats['student_room_number']} · Bed {stats['student_bed_number']}"
-                if stats["student_room_number"] else "No active room allocation"
+                if stats["student_room_number"] else "No allocation"
             )
-            summary = (
-                f"{room_summary}    •    "
-                f"Your open complaints: {stats['pending_complaints']}    •    "
-                f"Your outstanding fees: ₹{stats['pending_fees']:,.2f}"
-            )
+            parts = [
+                ("🛏 Your room", room_text),
+                ("⚠ Open complaints", str(stats["pending_complaints"])),
+                ("💳 Outstanding fees", f"₹{stats['pending_fees']:,.0f}"),
+            ]
 
-        quality_text = ctk.CTkLabel(
-            quality_frame,
-            text=summary,
-            font=ctk.CTkFont(
-                size=16
-            ),
-            justify="left"
-        )
+        inner = ctk.CTkFrame(bar, fg_color="transparent")
+        inner.pack(fill="both", expand=True, padx=20)
 
-        quality_text.pack(pady=(4, 24), padx=24)
+        for i, (label, val) in enumerate(parts):
+            seg = ctk.CTkFrame(inner, fg_color="transparent")
+            seg.pack(side="left", expand=True, fill="both")
 
-        if self.user["role"] == "admin":
-            self.create_dashboard_charts(stats)
+            ctk.CTkLabel(
+                seg,
+                text=label,
+                font=ctk.CTkFont(size=10),
+                text_color=colors["muted"],
+            ).pack(anchor="w", pady=(8, 0))
 
-        activity_frame = ctk.CTkFrame(self.dashboard_scroll, fg_color="transparent")
-        activity_frame.pack(fill="x", padx=12, pady=(0, 20))
-        activity_columns = 3 if self.user["role"] == "admin" else 2
-        for column in range(activity_columns):
-            activity_frame.grid_columnconfigure(column, weight=1, uniform="activity")
-        self.create_activity_panel(
-            activity_frame, "Recent Complaints", stats["recent_complaints"],
-            lambda row: f"{row[1]} · {row[3]}\n{row[4]}  ·  {row[6] or 'Date unavailable'}",
-            0,
-        )
-        self.create_activity_panel(
-            activity_frame, "Recent Payments", stats["recent_payments"],
-            lambda row: f"{row[1]} · ₹{float(row[4]):,.2f}\n{row[5] or 'Payment'}  ·  {row[6] or 'Date unavailable'}",
-            1,
-        )
-        if self.user["role"] == "admin":
-            self.create_activity_panel(
-                activity_frame, "Recent Registrations", stats["recent_students"],
-                lambda row: f"{row[1]} · {row[0]}\n{row[2] or 'Date unavailable'}",
-                2,
-            )
-        self.apply_visual_theme()
+            ctk.CTkLabel(
+                seg,
+                text=val,
+                font=ctk.CTkFont(size=13, weight="bold"),
+                text_color=colors["text"],
+            ).pack(anchor="w")
+
+            # vertical separator between segments
+            if i < len(parts) - 1:
+                ctk.CTkFrame(
+                    inner,
+                    width=1,
+                    fg_color=colors["border"],
+                    corner_radius=0,
+                ).pack(side="left", fill="y", pady=10)
+
+    # ─── charts ──────────────────────────────────────────────────────────────
 
     def create_dashboard_charts(self, stats):
-        """Show concise admin-only occupancy, fee, and complaint charts."""
+        """Admin-only 2×2 Matplotlib chart grid — DPI-corrected for sharpness."""
         colors = get_palette()
+
         section = ctk.CTkFrame(
-            self.dashboard_scroll, fg_color=colors["surface"],
-            border_color=colors["border"], border_width=1, corner_radius=14,
+            self.dashboard_scroll,
+            fg_color=colors["surface"],
+            border_color=colors["border"],
+            border_width=1,
+            corner_radius=16,
         )
-        section.pack(fill="x", padx=20, pady=(0, 18))
+        section.pack(fill="x", padx=24, pady=(4, 10))
+
         ctk.CTkLabel(
-            section, text="Operations Overview",
-            font=ctk.CTkFont(size=20, weight="bold"),
+            section,
+            text="Operations Overview",
+            font=ctk.CTkFont(size=17, weight="bold"),
+            text_color=colors["text"],
         ).pack(anchor="w", padx=20, pady=(16, 4))
 
-        self.dashboard_figure, axes = plt.subplots(2, 2, figsize=(12, 6.0))
+        # ── DPI-aware figure ─────────────────────────────────────────────────
+        try:
+            # winfo_fpixels("1i") returns pixels per inch → actual screen DPI
+            screen_dpi = self.winfo_fpixels("1i")
+            fig_dpi = min(max(int(screen_dpi), 72), 150)
+        except Exception:
+            fig_dpi = 100
+
+        bg = colors["surface"]
+        self.dashboard_figure, axes = plt.subplots(
+            2, 2,
+            figsize=(12, 5.6),
+            dpi=fig_dpi,
+        )
         axes = axes.flatten()
-        self.dashboard_figure.patch.set_facecolor(colors["surface"])
+        self.dashboard_figure.patch.set_facecolor(bg)
+        self.dashboard_figure.subplots_adjust(
+            left=0.06, right=0.97, top=0.92, bottom=0.10,
+            hspace=0.55, wspace=0.32,
+        )
+
         complaint_statuses = stats["complaint_status_counts"]
-        complaint_labels = [str(row[0]) for row in complaint_statuses]
-        complaint_values = [row[1] for row in complaint_statuses]
+        complaint_labels   = [str(r[0]) for r in complaint_statuses]
+        complaint_values   = [r[1] for r in complaint_statuses]
+
+        bar_color   = colors["accent"]
+        alt_color   = colors["border"]
+
         chart_specs = [
-            ("Bed Occupancy", [stats["occupied_beds"], stats["available_beds"]], ["Occupied", "Available"]),
-            ("Fee Collection", [stats["collected_fees"], stats["pending_fees"]], ["Collected", "Pending"]),
+            ("Bed Occupancy",      [stats["occupied_beds"],    stats["available_beds"]],  ["Occupied",  "Available"]),
+            ("Fee Collection",     [stats["collected_fees"],   stats["pending_fees"]],    ["Collected", "Pending"]),
             ("Complaints by Status", complaint_values, complaint_labels),
         ]
-        chart_colors = [colors["accent"], "#91A4BA"]
+
         for axis, (title, values, labels) in zip(axes[:3], chart_specs):
-            axis.set_facecolor(colors["surface"])
-            if sum(values) > 0:
-                bars = axis.bar(labels, values, color=chart_colors, width=0.58)
-                axis.bar_label(bars, fmt="%.0f" if max(values) >= 1 else "%.2f", padding=3,
-                               color=colors["text"], fontsize=9)
-                axis.margins(y=0.2)
+            axis.set_facecolor(bg)
+            if sum(v for v in values if v) > 0:
+                bar_colors = [bar_color, alt_color] * (len(values) // 2 + 1)
+                bars = axis.bar(labels, values, color=bar_colors[:len(values)], width=0.52, zorder=3)
+                axis.bar_label(bars, fmt="%.0f", padding=4,
+                               color=colors["text"], fontsize=8, fontweight="bold")
+                axis.margins(y=0.25)
             else:
                 axis.text(0.5, 0.5, "No data yet", ha="center", va="center",
-                          transform=axis.transAxes, color=colors["muted"])
+                          transform=axis.transAxes, color=colors["muted"], fontsize=9)
                 axis.set_xticks([])
-            axis.set_title(title, color=colors["text"], fontsize=11, pad=12)
-            axis.tick_params(axis="x", colors=colors["muted"], labelsize=9)
-            axis.tick_params(axis="y", colors=colors["muted"], labelsize=8)
+
+            axis.set_title(title, color=colors["text"], fontsize=10,
+                           fontweight="bold", pad=10)
+            axis.tick_params(axis="x", colors=colors["muted"], labelsize=8)
+            axis.tick_params(axis="y", colors=colors["muted"], labelsize=7)
             axis.spines["top"].set_visible(False)
             axis.spines["right"].set_visible(False)
             axis.spines["left"].set_color(colors["border"])
             axis.spines["bottom"].set_color(colors["border"])
-            axis.grid(axis="y", color=colors["border"], alpha=0.55, linewidth=0.6)
+            axis.grid(axis="y", color=colors["border"], alpha=0.6, linewidth=0.7, zorder=0)
             axis.set_axisbelow(True)
-        satisfaction_axis = axes[3]
-        satisfaction_axis.set_facecolor(colors["surface"])
+
+        # satisfaction horizontal bar
+        sat_ax = axes[3]
+        sat_ax.set_facecolor(bg)
         satisfaction = stats["average_satisfaction"]
         if satisfaction is not None:
-            satisfaction_axis.barh(["Average score"], [satisfaction], color=colors["accent"], height=0.48)
-            satisfaction_axis.set_xlim(0, 5)
-            satisfaction_axis.set_xticks(range(0, 6))
-            satisfaction_axis.text(
-                min(satisfaction + 0.12, 4.65), 0, f"{satisfaction:.2f}/5",
-                va="center", color=colors["text"], fontsize=10,
+            sat_ax.barh(["Avg. Score"], [satisfaction],
+                        color=bar_color, height=0.42, zorder=3)
+            sat_ax.set_xlim(0, 5)
+            sat_ax.set_xticks([0, 1, 2, 3, 4, 5])
+            sat_ax.text(
+                min(satisfaction + 0.1, 4.55), 0,
+                f"  {satisfaction:.2f}/5",
+                va="center", color=colors["text"], fontsize=9, fontweight="bold",
             )
-            satisfaction_axis.margins(y=0.7)
+            sat_ax.margins(y=0.7)
         else:
-            satisfaction_axis.text(0.5, 0.5, "No feedback yet", ha="center", va="center",
-                                   transform=satisfaction_axis.transAxes, color=colors["muted"])
-            satisfaction_axis.set_xticks([])
-        satisfaction_axis.set_title("User Satisfaction", color=colors["text"], fontsize=11, pad=12)
-        satisfaction_axis.tick_params(colors=colors["muted"], labelsize=9)
-        satisfaction_axis.spines["top"].set_visible(False)
-        satisfaction_axis.spines["right"].set_visible(False)
-        satisfaction_axis.spines["left"].set_color(colors["border"])
-        satisfaction_axis.spines["bottom"].set_color(colors["border"])
-        satisfaction_axis.grid(axis="x", color=colors["border"], alpha=0.55, linewidth=0.6)
-        satisfaction_axis.set_axisbelow(True)
-        self.dashboard_figure.tight_layout(pad=2.2)
+            sat_ax.text(0.5, 0.5, "No feedback yet", ha="center", va="center",
+                        transform=sat_ax.transAxes, color=colors["muted"], fontsize=9)
+            sat_ax.set_xticks([])
+
+        sat_ax.set_title("User Satisfaction", color=colors["text"], fontsize=10,
+                         fontweight="bold", pad=10)
+        sat_ax.tick_params(colors=colors["muted"], labelsize=8)
+        sat_ax.spines["top"].set_visible(False)
+        sat_ax.spines["right"].set_visible(False)
+        sat_ax.spines["left"].set_color(colors["border"])
+        sat_ax.spines["bottom"].set_color(colors["border"])
+        sat_ax.grid(axis="x", color=colors["border"], alpha=0.6, linewidth=0.7, zorder=0)
+        sat_ax.set_axisbelow(True)
+
+        # ── embed canvas ─────────────────────────────────────────────────────
         self.dashboard_canvas = FigureCanvasTkAgg(self.dashboard_figure, master=section)
         self.dashboard_canvas.draw()
-        self.dashboard_canvas.get_tk_widget().pack(fill="x", expand=True, padx=14, pady=(0, 14))
+        tk_widget = self.dashboard_canvas.get_tk_widget()
+        tk_widget.configure(highlightthickness=0, bd=0)   # remove ugly border
+        tk_widget.pack(fill="x", expand=True, padx=16, pady=(0, 16))
 
-    def create_activity_panel(self, parent, title, records, formatter, column):
-        """Render a small, role-scoped activity list."""
-        colors = get_palette()
-        panel = ctk.CTkFrame(
-            parent, fg_color=colors["surface"], border_color=colors["border"],
-            border_width=1, corner_radius=12,
+    # ─── activity panels ─────────────────────────────────────────────────────
+
+    def _build_activity_panels(self, stats, colors):
+        cols = 3 if self.user["role"] == "admin" else 2
+        frame = ctk.CTkFrame(self.dashboard_scroll, fg_color="transparent")
+        frame.pack(fill="x", padx=18, pady=(4, 24))
+
+        for c in range(cols):
+            frame.grid_columnconfigure(c, weight=1, uniform="activity")
+
+        self._activity_panel(
+            frame, "Recent Complaints", stats["recent_complaints"],
+            lambda r: (f"{r[1]} · {r[3]}", f"{r[4]}  ·  {r[6] or 'Pending'}"),
+            0, colors,
         )
-        panel.grid(row=0, column=column, padx=8, sticky="nsew")
+        self._activity_panel(
+            frame, "Recent Payments", stats["recent_payments"],
+            lambda r: (f"{r[1]} · ₹{float(r[4]):,.2f}", f"{r[5] or 'Payment'}  ·  {r[6] or '—'}"),
+            1, colors,
+        )
+        if self.user["role"] == "admin":
+            self._activity_panel(
+                frame, "Recent Registrations", stats["recent_students"],
+                lambda r: (f"{r[1]} · {r[0]}", r[2] or "—"),
+                2, colors,
+            )
+
+    def _activity_panel(self, parent, title, records, formatter, col, colors):
+        panel = ctk.CTkFrame(
+            parent,
+            fg_color=colors["surface"],
+            border_color=colors["border"],
+            border_width=1,
+            corner_radius=14,
+        )
+        panel.grid(row=0, column=col, padx=6, sticky="nsew")
+
         ctk.CTkLabel(
-            panel, text=title, font=ctk.CTkFont(size=16, weight="bold"),
-        ).pack(anchor="w", padx=15, pady=(14, 8))
+            panel,
+            text=title,
+            font=ctk.CTkFont(size=14, weight="bold"),
+            text_color=colors["text"],
+            anchor="w",
+        ).pack(anchor="w", padx=16, pady=(14, 6))
+
+        # thin accent line under title
+        ctk.CTkFrame(
+            panel,
+            height=2,
+            corner_radius=1,
+            fg_color=colors["accent"],
+        ).pack(fill="x", padx=16, pady=(0, 8))
+
         if not records:
             ctk.CTkLabel(
-                panel, text="Nothing to show yet", text_color=colors["muted"],
-            ).pack(anchor="w", padx=15, pady=(2, 16))
+                panel,
+                text="Nothing to show yet",
+                text_color=colors["muted"],
+                font=ctk.CTkFont(size=12),
+            ).pack(anchor="w", padx=16, pady=(4, 16))
             return
-        for index, row in enumerate(records):
+
+        for row in records:
+            main_text, sub_text = formatter(row)
+
+            row_frame = ctk.CTkFrame(
+                panel,
+                fg_color=colors["surface_alt"],
+                corner_radius=8,
+            )
+            row_frame.pack(fill="x", padx=12, pady=3)
+
             ctk.CTkLabel(
-                panel, text=formatter(row), justify="left", anchor="w",
-                text_color=colors["text"], wraplength=300,
-            ).pack(fill="x", padx=15, pady=(2, 8))
+                row_frame,
+                text=main_text,
+                font=ctk.CTkFont(size=12, weight="bold"),
+                text_color=colors["text"],
+                anchor="w",
+                wraplength=280,
+            ).pack(anchor="w", padx=10, pady=(6, 0))
 
-    # =========================================================
-    # DASHBOARD CARDS
-    # =========================================================
+            ctk.CTkLabel(
+                row_frame,
+                text=sub_text,
+                font=ctk.CTkFont(size=10),
+                text_color=colors["muted"],
+                anchor="w",
+                wraplength=280,
+            ).pack(anchor="w", padx=10, pady=(0, 6))
 
-    def create_card(
-        self,
-        parent,
-        title,
-        value,
-        column,
-        row=0,
-    ):
+        ctk.CTkFrame(panel, height=10, fg_color="transparent").pack()
 
-        card = ctk.CTkFrame(
-            parent,
-            width=190,
-            height=130, fg_color=COLORS["surface"], border_color=COLORS["border"],
-            border_width=1, corner_radius=14
-        )
-
-        card.grid(
-            row=row,
-            column=column,
-            padx=8,
-            sticky="nsew"
-        )
-
-        parent.grid_columnconfigure(
-            column,
-            weight=1
-        )
-
-        title_label = ctk.CTkLabel(
-            card,
-            text=title,
-            font=ctk.CTkFont(
-                size=13
-            )
-        )
-
-        title_label.pack(
-            pady=(20, 5)
-        )
-
-        value_label = ctk.CTkLabel(
-            card,
-            text=value,
-            font=ctk.CTkFont(
-                size=25,
-                weight="bold"
-            )
-        )
-
-        value_label.pack()
-
-        colors = get_palette()
-        title_label.configure(text_color=colors["muted"])
-        value_label.configure(text_color=colors["accent"])
-
-    # =========================================================
-    # NOTIFICATION COUNT
-    # =========================================================
+    # =========================================================================
+    # NOTIFICATION BADGE
+    # =========================================================================
 
     def update_notification_count(self):
-
         try:
-
-            unread_count = get_unread_count(self.user["id"], actor=self.user)
-
-            if unread_count > 0:
-
-                self.notifications_button.configure(
-                    text=f"🔔 Notifications ({unread_count})"
-                )
-
+            unread = get_unread_count(self.user["id"], actor=self.user)
+            btn = self._menu_buttons.get("Notifications")
+            if btn is None:
+                return
+            if unread > 0:
+                btn.configure(text=f"  🔔   Notifications ({unread})")
             else:
+                btn.configure(text="  🔔   Notifications")
+        except Exception as err:
+            print("Notification count error:", err)
 
-                self.notifications_button.configure(
-                    text="🔔 Notifications"
+    # =========================================================================
+    # SIDEBAR ACTIVE STATE
+    # =========================================================================
+
+    def _set_active_menu(self, name):
+        """Highlight the active sidebar button."""
+        colors = get_palette()
+        for btn_name, btn in self._menu_buttons.items():
+            if btn_name == name:
+                btn.configure(
+                    fg_color=colors["nav_active"],
+                    text_color="#FFFFFF",
+                )
+            else:
+                btn.configure(
+                    fg_color="transparent",
+                    text_color="#E2E8F0",
                 )
 
-        except Exception as error:
-
-            print(
-                "Notification count error:",
-                error
-            )
-
-    # =========================================================
-    # MENU
-    # =========================================================
+    # =========================================================================
+    # MENU ROUTING
+    # =========================================================================
 
     def menu_clicked(self, name):
-
         try:
             require_menu_access(self.user, name)
         except AuthorizationError as error:
             messagebox.showwarning("Access denied", str(error), parent=self)
             return
 
-        print(f"{name} clicked")
-
-        # =====================================================
-        # Dashboard
-        # =====================================================
-
         if name == "Dashboard":
-
+            self._set_active_menu("Dashboard")
             self.go_home()
-
             return
 
-        # =====================================================
-        # Students
-        # =====================================================
+        window_map = {
+            "Students":         ("students_window",     StudentsWindow,          [self]),
+            "Rooms":            ("rooms_window",         RoomsWindow,             [self]),
+            "Fees":             ("fees_window",          FeeManagement,           [self]),
+            "Complaints":       ("complaints_window",    ComplaintManagement,     [self]),
+            "Attendance":       ("attendance_window",    AttendanceManagement,    [self]),
+            "Feedback":         ("feedback_window",      FeedbackManagement,      [self]),
+            "Quality Dashboard":("quality_window",       QualityDashboardWindow,  [self]),
+            "Reports":          ("reports_window",       ReportsWindow,           [self]),
+            "Notifications":    ("notifications_window", NotificationsWindow,     [self, self.user]),
+            "Profile":          ("profile_window",       ProfileWindow,           [self, self.user]),
+            "Settings":         ("settings_window",      SettingsWindow,          [self, self.user]),
+        }
 
-        elif name == "Students":
-
-            if (
-                self.students_window is None
-                or not self.students_window.winfo_exists()
-            ):
-
-                self.students_window = StudentsWindow(self)
-
-            else:
-
-                self.students_window.lift()
-
-            self._raise_feature_window(self.students_window)
-
+        if name not in window_map:
             return
 
-        # =====================================================
-        # Rooms
-        # =====================================================
+        attr, cls, args = window_map[name]
+        win = getattr(self, attr, None)
 
-        elif name == "Rooms":
+        if win is None or not win.winfo_exists():
+            win = cls(*args)
+            setattr(self, attr, win)
+        else:
+            win.lift()
 
-            if (
-                self.rooms_window is None
-                or not self.rooms_window.winfo_exists()
-            ):
+        self._set_active_menu(name)
+        self._raise_feature_window(win)
 
-                self.rooms_window = RoomsWindow(self)
-
-            else:
-
-                self.rooms_window.lift()
-
-            self._raise_feature_window(self.rooms_window)
-
-            return
-
-        # =====================================================
-        # Fees
-        # =====================================================
-
-        elif name == "Fees":
-
-            if (
-                self.fees_window is None
-                or not self.fees_window.winfo_exists()
-            ):
-
-                self.fees_window = FeeManagement(self)
-
-            else:
-
-                self.fees_window.lift()
-
-            self._raise_feature_window(self.fees_window)
-
-            return
-
-        # =====================================================
-        # Complaints
-        # =====================================================
-
-        elif name == "Complaints":
-
-            if (
-                self.complaints_window is None
-                or not self.complaints_window.winfo_exists()
-            ):
-
-                self.complaints_window = ComplaintManagement(self)
-
-            else:
-
-                self.complaints_window.lift()
-
-            self._raise_feature_window(self.complaints_window)
-
-            return
-
-        # =====================================================
-        # Attendance
-        # =====================================================
-
-        elif name == "Attendance":
-
-            if (
-                self.attendance_window is None
-                or not self.attendance_window.winfo_exists()
-            ):
-
-                self.attendance_window = AttendanceManagement(self)
-
-            else:
-
-                self.attendance_window.lift()
-
-            self._raise_feature_window(self.attendance_window)
-
-            return
-
-        # =====================================================
-        # Feedback
-        # =====================================================
-
-        elif name == "Feedback":
-
-            if (
-                self.feedback_window is None
-                or not self.feedback_window.winfo_exists()
-            ):
-
-                self.feedback_window = FeedbackManagement(self)
-
-            else:
-
-                self.feedback_window.lift()
-
-            self._raise_feature_window(self.feedback_window)
-
-            return
-
-        # =====================================================
-        # Notifications
-        # =====================================================
-
-        elif name == "Notifications":
-
-            if (
-                self.notifications_window is None
-                or not self.notifications_window.winfo_exists()
-            ):
-
-                self.notifications_window = NotificationsWindow(
-                    self,
-                    self.user
-                )
-
-            else:
-
-                self.notifications_window.lift()
-
-            self._raise_feature_window(self.notifications_window)
-
+        if name == "Notifications":
             self.update_notification_count()
-
-            return
-
-        # =====================================================
-        # Quality Dashboard
-        # =====================================================
-
-        elif name == "Quality Dashboard":
-
-            if (
-                self.quality_window is None
-                or not self.quality_window.winfo_exists()
-            ):
-
-                self.quality_window = QualityDashboardWindow(self)
-
-            else:
-
-                self.quality_window.lift()
-
-            self._raise_feature_window(self.quality_window)
-
-            return
-
-        # =====================================================
-        # Reports
-        # =====================================================
-
-        elif name == "Reports":
-
-            print("Opening Reports Window...")
-
-            if (
-                self.reports_window is None
-                or not self.reports_window.winfo_exists()
-            ):
-
-                self.reports_window = ReportsWindow(self)
-
-            else:
-
-                self.reports_window.lift()
-
-            self._raise_feature_window(self.reports_window)
-
-            print("Reports Window Opened")
-
-            return
-
-        # =====================================================
-        # Profile
-        # =====================================================
-
-        elif name == "Profile":
-
-            if (
-                self.profile_window is None
-                or not self.profile_window.winfo_exists()
-            ):
-
-                self.profile_window = ProfileWindow(
-                    self,
-                    self.user
-                )
-
-            else:
-
-                self.profile_window.lift()
-
-            self._raise_feature_window(self.profile_window)
-
-            return
-
-        # =====================================================
-        # Settings
-        # =====================================================
-
-        elif name == "Settings":
-
-            if (
-                self.settings_window is None
-                or not self.settings_window.winfo_exists()
-            ):
-
-                self.settings_window = SettingsWindow(
-                    self,
-                    self.user
-                )
-
-            else:
-
-                self.settings_window.lift()
-
-            self._raise_feature_window(self.settings_window)
-
-            return
 
     def _raise_feature_window(self, window):
         """Keep feature windows owned by and stacked above the dashboard."""
         if window is None or not window.winfo_exists():
             return
-
         try:
             self._active_feature_window = window
             self.shortcut_manager.attach_window(window)
@@ -920,57 +881,42 @@ class DashboardWindow(ctk.CTk):
             window.deiconify()
             window.lift()
             window.focus_force()
-            # Windows can process focus before the native window is mapped.
-            window.after(80, lambda target=window: self._finish_raise(target))
+            window.after(80, lambda w=window: (w.lift(), w.focus_force()) if w.winfo_exists() else None)
         except Exception:
             pass
 
-    def _finish_raise(self, window):
-        if window.winfo_exists():
-            window.lift()
-            window.focus_force()
-
-    # =========================================================
-    # KEYBOARD SHORTCUTS
-    # =========================================================
+    # =========================================================================
+    # KEYBOARD SHORTCUT HANDLERS
+    # =========================================================================
 
     def go_home(self):
-
-        """
-        Ctrl + H
-
-        Return to dashboard without creating
-        another dashboard frame.
-        """
-
+        """Ctrl+H — return to dashboard without recreating it."""
         active = self._active_feature_window
         self._active_feature_window = None
         if active is not None and active.winfo_exists():
             active.withdraw()
+        self._set_active_menu("Dashboard")
         self.lift()
         self.focus_force()
 
     def refresh_active_page(self):
-        """Refresh the window currently holding keyboard focus."""
+        """Ctrl+R — refresh whichever window has focus."""
         active = self._active_feature_window
         focused = self.focus_get()
         if focused is not None:
             top = focused.winfo_toplevel()
-            if top is self:
-                active = None
-            else:
-                active = top
+            active = None if top is self else top
 
         refreshers = {
-            self.students_window: "load_students",
-            self.rooms_window: "refresh_all",
-            self.fees_window: "load_fees",
-            self.complaints_window: "load_complaints",
-            self.attendance_window: "load_attendance",
-            self.feedback_window: "load_feedback",
-            self.notifications_window: "load_notifications",
-            self.reports_window: "refresh_reports",
-            self.settings_window: "load_settings",
+            self.students_window:     "load_students",
+            self.rooms_window:        "refresh_all",
+            self.fees_window:         "load_fees",
+            self.complaints_window:   "load_complaints",
+            self.attendance_window:   "load_attendance",
+            self.feedback_window:     "load_feedback",
+            self.notifications_window:"load_notifications",
+            self.reports_window:      "refresh_reports",
+            self.settings_window:     "load_settings",
         }
         method_name = refreshers.get(active)
         if active is None:
@@ -978,32 +924,20 @@ class DashboardWindow(ctk.CTk):
         elif method_name and active.winfo_exists():
             getattr(active, method_name)()
         elif active in (self.quality_window, self.profile_window) and active.winfo_exists():
+            feature_name = (
+                "Quality Dashboard" if active is self.quality_window else "Profile"
+            )
             if active is self.quality_window:
                 self.quality_window = None
-                feature_name = "Quality Dashboard"
             else:
                 self.profile_window = None
-                feature_name = "Profile"
             active.destroy()
             self.menu_clicked(feature_name)
 
-    # =========================================================
-
     def refresh_dashboard(self):
-
-        """
-        Ctrl + R
-
-        Refresh only the contents inside main_area.
-
-        The main_area itself is NOT destroyed.
-        Therefore the sidebar and layout remain correct.
-        """
-
+        """Ctrl+R on dashboard — rebuild scroll content, keep sidebar."""
         if self.main_area is None:
             return
-
-        # Remove existing dashboard content
         if self.dashboard_figure is not None:
             plt.close(self.dashboard_figure)
             self.dashboard_figure = None
@@ -1011,104 +945,94 @@ class DashboardWindow(ctk.CTk):
         if self.dashboard_scroll is not None and self.dashboard_scroll.winfo_exists():
             self.dashboard_scroll.destroy()
         self.dashboard_scroll = None
-
-        # Recreate dashboard content
-        # using the SAME main_area
         self.create_dashboard()
-
-        # Update notification badge
         self.update_notification_count()
 
-    # =========================================================
+    # =========================================================================
+    # THEMING
+    # =========================================================================
 
     def apply_visual_theme(self):
-        """Refresh dashboard and open feature windows for the active theme."""
+        """Refresh every open window to match the active light/dark palette."""
         colors = get_palette()
         self.configure(fg_color=colors["page"])
-        self.sidebar.configure(fg_color=colors["nav"])
 
+        # ── sidebar ──────────────────────────────────────────────────────────
+        self.sidebar.configure(fg_color=colors["nav"])
         for widget in self.sidebar.winfo_children():
-            if isinstance(widget, ctk.CTkLabel):
-                label = str(widget.cget("text"))
-                widget.configure(
-                    text_color="#FFFFFF" if label.startswith("HOSTEL") else "#B8C7D8"
-                )
-            elif isinstance(widget, ctk.CTkScrollableFrame):
+            kind = widget.__class__.__name__
+            if kind == "CTkScrollableFrame":
                 widget.configure(
                     fg_color="transparent",
-                    scrollbar_button_color="#40536C",
-                    scrollbar_button_hover_color="#637991",
+                    scrollbar_button_color=colors["nav_hover"],
+                    scrollbar_button_hover_color=colors["muted"],
+                )
+            elif kind == "CTkFrame":
+                widget.configure(fg_color="transparent")
+            elif kind == "CTkLabel":
+                text = str(widget.cget("text"))
+                if text == "NAVIGATION":
+                    widget.configure(text_color=colors["subtle"])
+
+        # sidebar menu buttons
+        for btn in self._menu_buttons.values():
+            current_fg = btn.cget("fg_color")
+            if current_fg == "transparent":
+                btn.configure(
+                    fg_color="transparent",
+                    hover_color=colors["nav_hover"],
+                    text_color="#E2E8F0",
                 )
 
-        for widget in self.menu_frame.winfo_children():
-            if isinstance(widget, ctk.CTkButton):
-                if str(widget.cget("text")).startswith("Logout"):
-                    widget.configure(fg_color=colors["danger"], hover_color="#963B3B")
-                else:
-                    widget.configure(
-                        fg_color="transparent",
-                        hover_color=colors["nav_hover"],
-                        text_color="#E7EEF7",
-                    )
-
+        # ── main area ────────────────────────────────────────────────────────
         if self.main_area is not None:
-            apply_professional_style(self.main_area)
+            self.main_area.configure(fg_color=colors["page"])
+        if self.dashboard_scroll is not None and self.dashboard_scroll.winfo_exists():
+            self.dashboard_scroll.configure(fg_color=colors["page"])
+            apply_professional_style(self.dashboard_scroll)
+
         self.apply_dashboard_chart_theme()
 
+        # ── open feature windows ─────────────────────────────────────────────
         for attr in (
             "students_window", "rooms_window", "fees_window", "complaints_window",
             "attendance_window", "feedback_window", "quality_window", "reports_window",
             "profile_window", "settings_window", "notifications_window",
         ):
-            window = getattr(self, attr, None)
-            if window is not None and window.winfo_exists():
-                apply_professional_style(window)
-                if hasattr(window, "refresh_theme_display"):
-                    window.refresh_theme_display()
-                if attr == "settings_window" and hasattr(window, "theme_menu"):
-                    window.theme_menu.set(ThemeManager.get_current_theme().capitalize())
+            win = getattr(self, attr, None)
+            if win is not None and win.winfo_exists():
+                apply_professional_style(win)
+                if hasattr(win, "refresh_theme_display"):
+                    win.refresh_theme_display()
+                if attr == "settings_window" and hasattr(win, "theme_menu"):
+                    win.theme_menu.set(ThemeManager.get_current_theme().capitalize())
 
     def apply_dashboard_chart_theme(self):
-        """Keep the embedded Matplotlib charts in sync with light/dark mode."""
+        """Sync embedded Matplotlib charts with the active light/dark palette."""
         if self.dashboard_figure is None:
             return
         colors = get_palette()
-        self.dashboard_figure.patch.set_facecolor(colors["surface"])
+        bg = colors["surface"]
+        self.dashboard_figure.patch.set_facecolor(bg)
         for axis in self.dashboard_figure.axes:
-            axis.set_facecolor(colors["surface"])
+            axis.set_facecolor(bg)
             axis.title.set_color(colors["text"])
-            axis.xaxis.label.set_color(colors["text"])
-            axis.yaxis.label.set_color(colors["text"])
             axis.tick_params(colors=colors["muted"])
             for spine in axis.spines.values():
                 if spine.get_visible():
                     spine.set_color(colors["border"])
-            for index, bar in enumerate(axis.patches):
-                bar.set_facecolor(colors["accent"] if index % 2 == 0 else "#91A4BA")
-            for label in axis.texts:
-                label.set_color(colors["text"] if label.get_text() != "No data yet" else colors["muted"])
-            axis.yaxis.grid(True, color=colors["border"], alpha=0.55, linewidth=0.6)
+            for idx, patch in enumerate(axis.patches):
+                patch.set_facecolor(colors["accent"] if idx % 2 == 0 else colors["border"])
+            for txt in axis.texts:
+                txt.set_color(colors["text"] if txt.get_text() not in ("No data yet", "No feedback yet") else colors["muted"])
+            axis.yaxis.grid(True, color=colors["border"], alpha=0.55, linewidth=0.7)
         if self.dashboard_canvas is not None:
             self.dashboard_canvas.draw_idle()
 
     def toggle_theme(self):
-
-        """
-        Ctrl + D
-
-        Toggle between Light and Dark mode.
-        """
-
-        current_mode = ctk.get_appearance_mode()
-
-        if current_mode == "Light":
-
-            new_theme = ThemeManager.DARK_MODE
-
-        else:
-
-            new_theme = ThemeManager.LIGHT_MODE
-
+        """Ctrl+D — toggle light / dark."""
+        current = ctk.get_appearance_mode()
+        new_theme = ThemeManager.DARK_MODE if current == "Light" else ThemeManager.LIGHT_MODE
         ThemeManager.set_theme(new_theme)
         self.apply_visual_theme()
         try:
@@ -1116,60 +1040,35 @@ class DashboardWindow(ctk.CTk):
         except Exception:
             messagebox.showerror(
                 "Theme",
-                "Theme changed for this session but could not be saved. Please try again.",
+                "Theme changed for this session but could not be saved.",
                 parent=self,
             )
 
-    # =========================================================
+    # =========================================================================
+    # EXIT / LOGOUT
+    # =========================================================================
 
     def exit_application(self):
-
-        """
-        Ctrl + Q
-
-        Exit application after confirmation.
-        """
-
-        result = messagebox.askyesno(
-            "Exit Application",
-            "Are you sure you want to exit the application?"
-        )
-
-        if result:
+        """Ctrl+Q — exit after confirmation."""
+        if messagebox.askyesno("Exit", "Are you sure you want to exit?", parent=self):
             revoke_session(self.user.get("session_token"))
             self.destroy()
 
-    # =========================================================
-    # LOGOUT
-    # =========================================================
-
     def logout(self):
-
-        result = messagebox.askyesno(
-            "Logout",
-            "Are you sure you want to logout?"
-        )
-
-        if result:
-
+        if messagebox.askyesno("Logout", "Are you sure you want to logout?", parent=self):
             self.destroy()
 
 
-# =============================================================
+# =============================================================================
 # DIRECT TEST
-# =============================================================
+# =============================================================================
 
 if __name__ == "__main__":
-
     test_user = {
         "id": 1,
         "username": "admin",
         "email": "admin@hostel.com",
-        "role": "admin"
+        "role": "admin",
     }
-
-    app = DashboardWindow(
-        test_user
-    )
-
+    app = DashboardWindow(test_user)
     app.mainloop()
